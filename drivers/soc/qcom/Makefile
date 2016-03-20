@@ -108,4 +108,5 @@ ifeq ($(CONFIG_ODM_WT_EDIT),y)
 #Lijie.Yang@ODM_WT.BSP.Kernel.Security.1941873, 2020/03/20, add for add secboot_fuse_reg & serial_num node in /proc to get fuse status and cpuid
 obj-y += serial_num.o
 obj-y += secboot_fuse.o
+obj-$(CONFIG_STATE_NOTIFIER) += state_notifier.o
 endif

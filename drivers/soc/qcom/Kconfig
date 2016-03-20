@@ -920,7 +920,9 @@ config QCOM_HYP_CORE_CTL
 	bool "CPU reservation scheme for Hypervisor"
 	depends on OKL4_GUEST
 	help
-	  This driver reserve the specified CPUS by isolating them. The reserved
-	  CPUs can be assigned to the other guest OS by the hypervisor.
-	  An offline CPU is considered as a reserved CPU since this OS can't use
-	  it.
+	 This option enables the QMI client driver for MFSE service.
+
+config STATE_NOTIFIER
+    bool "State Notifier"
+
+source "drivers/soc/qcom/memshare/Kconfig"
