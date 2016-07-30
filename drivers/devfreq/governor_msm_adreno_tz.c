@@ -60,8 +60,7 @@ static DEFINE_SPINLOCK(suspend_lock);
 
 #define TAG "msm_adreno_tz: "
 
-static unsigned int adrenoboost = 1;
-
+static unsigned int adrenoboost = 10000;
 static u64 suspend_time;
 static u64 suspend_start;
 static unsigned long acc_total, acc_relative_busy;
@@ -117,7 +116,7 @@ static ssize_t adrenoboost_save(struct device *dev,
 {
 	int input;
 	sscanf(buf, "%d ", &input);
-	if (input < 0 || input > 3) {
+	if (input < 0 || input > 50000) {
 		adrenoboost = 0;
 	} else {
 		adrenoboost = input;
@@ -125,6 +124,10 @@ static ssize_t adrenoboost_save(struct device *dev,
 
 	return count;
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> ffbda0cd298f (msm_adreno_tz: add adrenoboost parameter)
 
 static ssize_t gpu_load_show(struct device *dev,
 		struct device_attribute *attr,
@@ -498,10 +501,14 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 
 		scm_data[0] = level;
 		scm_data[1] = priv->bin.total_time;
+<<<<<<< HEAD
 		if (refresh_rate > 60)
 			scm_data[2] = priv->bin.busy_time * refresh_rate / 60;
 		else
 			scm_data[2] = priv->bin.busy_time;
+=======
+		scm_data[2] = priv->bin.busy_time + (level * adrenoboost);
+>>>>>>> ffbda0cd298f (msm_adreno_tz: add adrenoboost parameter)
 		scm_data[3] = context_count;
 		__secure_tz_update_entry3(scm_data, sizeof(scm_data),
 					&val, sizeof(val), priv);
