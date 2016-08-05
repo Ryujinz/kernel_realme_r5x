@@ -62,6 +62,25 @@ static u64 suspend_time;
 static u64 suspend_start;
 static unsigned long acc_total, acc_relative_busy;
 
+static struct msm_adreno_extended_profile *partner_gpu_profile;
+static void do_partner_start_event(struct work_struct *work);
+static void do_partner_stop_event(struct work_struct *work);
+static void do_partner_suspend_event(struct work_struct *work);
+static void do_partner_resume_event(struct work_struct *work);
+
+static struct workqueue_struct *workqueue;
+
+static struct devfreq *tz_devfreq_g;
+static struct work_struct boost_work;
+static struct delayed_work unboost_work;
+static bool gpu_boost_running;
+
+static unsigned long boost_freq;
+module_param(boost_freq, ulong, 0644);
+
+static unsigned long boost_duration;
+module_param(boost_duration, ulong, 0644);
+
 /*
  * Returns GPU suspend time in millisecond.
  */
@@ -490,6 +509,13 @@ static int tz_handler(struct devfreq *devfreq, unsigned int event, void *data)
 		break;
 
 	case DEVFREQ_GOV_STOP:
+		cancel_work_sync(&boost_work);
+		cancel_delayed_work_sync(&unboost_work);
+		tz_devfreq_g = NULL;
+		/* Queue the stop work before the TZ is stopped */
+		if (partner_gpu_profile && partner_gpu_profile->bus_devfreq)
+			queue_work(workqueue,
+				&gpu_profile->partner_stop_event_ws);
 		spin_lock(&suspend_lock);
 		suspend_start = 0;
 		spin_unlock(&suspend_lock);
