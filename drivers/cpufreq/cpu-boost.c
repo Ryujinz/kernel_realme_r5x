@@ -351,12 +351,20 @@ static int cpu_boost_init(void)
 {
 	int cpu, ret, i;
 	struct cpu_sync *s;
-	struct sched_param param = { .sched_priority = MAX_RT_PRIO - 2 };
+	struct sched_param param = { .sched_priority = 2 };
+	cpumask_t sys_bg_mask;
+
+	/* Hardcode the cpumask to bind the kthread to it */
+	cpumask_clear(&sys_bg_mask);
+	for (i = 0; i <= 3; i++) {
+		cpumask_set_cpu(i, &sys_bg_mask);
+	}
 
 	kthread_init_worker(&cpu_boost_worker);
-	cpu_boost_worker_thread = kthread_run(kthread_worker_fn,
+	cpu_boost_worker_thread = kthread_create(kthread_worker_fn,
 		&cpu_boost_worker, "cpu_boost_worker_thread");
-	if (IS_ERR(cpu_boost_worker_thread))
+	if (IS_ERR(cpu_boost_worker_thread)) {
+		pr_err("cpu-boost: Failed to init kworker!\n");
 		return -EFAULT;
 	}
 
@@ -370,7 +378,6 @@ static int cpu_boost_init(void)
 	/* Wake it up! */
 	wake_up_process(cpu_boost_worker_thread);
 
-	sched_setscheduler(cpu_boost_worker_thread, SCHED_FIFO, &param);
 	kthread_init_work(&input_boost_work, do_input_boost);
 	INIT_DELAYED_WORK(&input_boost_rem, do_input_boost_rem);
 
