@@ -291,11 +291,11 @@ int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
 		 * This can be moved to within driver enter routine,
 		 * but that results in multiple copies of same code.
 		 */
-		diff = ktime_us_delta(time_end, time_start);
+		diff = ktime_to_us(ktime_sub(time_end, time_start));
 		if (diff > INT_MAX)
 			diff = INT_MAX;
 
-		dev->last_residency = (int)diff;
+		dev->last_residency = (int) diff;
 		dev->states_usage[entered_state].time += dev->last_residency;
 		dev->states_usage[entered_state].usage++;
 	} else {
