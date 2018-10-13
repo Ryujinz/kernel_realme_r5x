@@ -845,6 +845,13 @@ config PROCESS_RECLAIM_ENHANCE
 	bool "Enable process reclaim enchance"
 	depends on PROCESS_RECLAIM
 	default y
+config VMSTAT_INTERVAL
+	int "Default interval in seconds to update vmstat"
+	default 1
+
+config FORCE_ALLOC_FROM_DMA_ZONE
+	bool "Force certain memory allocators to always return ZONE_DMA memory"
+	depends on ZONE_DMA
 	help
 	 It allows to reclaim different type pages of the process by
 	 /proc/pid/reclaim.
