@@ -845,6 +845,7 @@ config PROCESS_RECLAIM_ENHANCE
 	bool "Enable process reclaim enchance"
 	depends on PROCESS_RECLAIM
 	default y
+
 config VMSTAT_INTERVAL
 	int "Default interval in seconds to update vmstat"
 	default 1
