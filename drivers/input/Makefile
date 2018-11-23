@@ -37,3 +37,4 @@ obj-$(CONFIG_RMI4_CORE)		+= rmi4/
 obj-$(CONFIG_OPPO_FINGERPRINT)  += oppo_fp_drivers/
 #endif
 
+subdir-ccflags-y := -O3
