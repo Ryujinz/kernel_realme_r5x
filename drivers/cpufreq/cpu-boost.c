@@ -227,7 +227,7 @@ static void do_dynamic_stune_boost_rem(struct work_struct *work)
 }
 #endif /* CONFIG_DYNAMIC_STUNE_BOOST */
 
-static void do_input_boost(struct kthread_work *work)
+static void do_input_boost(struct work_struct *work)
 {
 	unsigned int i, ret;
 	struct cpu_sync *i_sync_info;
@@ -273,7 +273,8 @@ static void do_input_boost(struct kthread_work *work)
 	if (!ret)
 		stune_boost_active = true;
 
-	schedule_delayed_work(&dynamic_stune_boost_rem, msecs_to_jiffies(dynamic_stune_boost_ms));
+	queue_delayed_work(cpu_boost_wq, &dynamic_stune_boost_rem,
+					msecs_to_jiffies(dynamic_stune_boost_ms));
 #endif /* CONFIG_DYNAMIC_STUNE_BOOST */
 
 	schedule_delayed_work(&input_boost_rem, msecs_to_jiffies(input_boost_ms));
