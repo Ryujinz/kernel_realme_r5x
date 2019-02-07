@@ -1,7 +1,11 @@
 /*
  * Author: Chad Froebel <chadfroebel@gmail.com>
  *
+<<<<<<< HEAD
  * Port to instantnoodle: engstk <eng.stk@sapo.pt>
+=======
+ * Port to cheeseburger: engstk <eng.stk@sapo.pt>
+>>>>>>> b4893cfa2a800... drivers: misc: implement usb fast charge mode
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
