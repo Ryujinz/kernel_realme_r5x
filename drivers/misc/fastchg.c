@@ -1,7 +1,7 @@
 /*
  * Author: Chad Froebel <chadfroebel@gmail.com>
  *
- * Port to instantnoodle: engstk <eng.stk@sapo.pt>
+ * Port to cheeseburger: engstk <eng.stk@sapo.pt>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -27,7 +27,7 @@
 #include <linux/string.h>
 #include <linux/module.h>
 
-int force_fast_charge = 0;
+int force_fast_charge = 1;
 
 static int __init get_fastcharge_opt(char *ffc)
 {
