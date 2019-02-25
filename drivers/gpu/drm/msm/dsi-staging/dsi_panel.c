@@ -38,7 +38,7 @@ extern int oppo_display_update_aod_area_unlock(void);
 #endif /*CONFIG_PRODUCT_REALME_TRINKET*/
 
 #ifdef CONFIG_KLAPSE
-#include <linux/klapse.h>
+#include "../sde/klapse.h"
 #endif
 
 /**
@@ -919,6 +919,10 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 
 	pr_err("dsi_panel_update_backlight---lvl:%d\n", bl_lvl);
 	dsi = &panel->mipi_device;
+	
+#ifdef CONFIG_KLAPSE
+	set_rgb_slider(bl_lvl);
+#endif
 
 	//#ifdef CONFIG_ODM_WT_EDIT
 //Hongzhu.Su@ODM_WT.MM.Display.Lcd., Start 2020/03/09, add NT36525B HOLITECH BOE LCD bringup code
