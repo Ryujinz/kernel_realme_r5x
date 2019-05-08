@@ -1102,6 +1102,22 @@ config SCHED_TUNE
 
 	  If unsure, say N.
 
+config UCLAMP_ASSIST
+	bool "UClamp configuration helper"
+	depends on CPUSETS && ANDROID && UCLAMP_TASK && UCLAMP_TASK_GROUP
+	help
+	  This option enabled in-kernel uclamp setting overrides.
+
+config STUNE_ASSIST
+	bool "SchedTune configuration helper"
+	depends on SCHED_TUNE
+	depends on ANDROID
+	help
+	  This option enables the configuration of default SchedTune
+	  parameters from kernel.
+
+	  If unsure, say N.
+
 config DEFAULT_USE_ENERGY_AWARE
 	bool "Default to enabling the Energy Aware Scheduler feature"
 	default n
