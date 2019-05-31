@@ -37,6 +37,10 @@
 extern int oppo_display_update_aod_area_unlock(void);
 #endif /*CONFIG_PRODUCT_REALME_TRINKET*/
 
+#ifdef CONFIG_KLAPSE
+#include <linux/klapse.h>
+#endif
+
 /**
  * topology is currently defined by a set of following 3 values:
  * 1. num of layer mixers
