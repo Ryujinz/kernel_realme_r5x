@@ -754,6 +754,38 @@ static int qcom_smp2p_resume(struct device *dev)
 						platform_device, dev);
 
 	ret = qcom_smp2p_alloc_item(pdev, smp2p);
+	ret = qcom_smp2p_alloc_outbound_item(smp2p);
+	if (ret < 0)
+		goto print_err;
+
+	for_each_available_child_of_node(pdev->dev.of_node, node) {
+		entry = devm_kzalloc(&pdev->dev, sizeof(*entry), GFP_KERNEL);
+		if (!entry) {
+			ret = -ENOMEM;
+			goto print_err;
+		}
+
+		entry->smp2p = smp2p;
+		spin_lock_init(&entry->lock);
+		ret = of_property_read_string(node, "qcom,entry-name",
+								&entry->name);
+		if (ret < 0)
+			goto print_err;
+
+		if (!of_property_read_bool(node, "interrupt-controller")) {
+			ret = qcom_smp2p_outbound_entry(smp2p, entry, node);
+			if (ret < 0)
+				goto print_err;
+
+			list_add(&entry->node, &smp2p->outbound);
+		}
+	}
+	wakeup_source_init(&smp2p->ws, "smp2p");
+
+	/* Kick the outgoing edge after allocating entries */
+	qcom_smp2p_kick(smp2p);
+
+print_err:
 	if (ret < 0 && ret != -EEXIST)
 		dev_err(dev, "failed to alloc items ret = %d\n", ret);
 
@@ -763,6 +795,16 @@ static int qcom_smp2p_resume(struct device *dev)
 static int qcom_smp2p_suspend(struct device *dev)
 {
 	struct qcom_smp2p *smp2p = dev_get_drvdata(dev);
+	struct smp2p_entry *entry;
+	struct smp2p_entry *next_entry;
+
+	/* Walk through the out bound list and release state and entry */
+	list_for_each_entry_safe(entry, next_entry, &smp2p->outbound, node) {
+		qcom_smem_state_unregister(entry->state);
+		list_del(&entry->node);
+		devm_kfree(smp2p->dev, entry);
+	}
+	INIT_LIST_HEAD(&smp2p->outbound);
 
 	qcom_smp2p_release_item(dev, smp2p);
 	return 0;
