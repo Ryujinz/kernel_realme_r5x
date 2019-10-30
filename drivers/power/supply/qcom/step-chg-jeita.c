@@ -85,10 +85,69 @@ static struct step_chg_info *the_chip;
 
 #define STEP_CHG_HYSTERISIS_DELAY_US		5000000 /* 5 secs */
 
-#define BATT_HOT_DECIDEGREE_MAX			600
-#define GET_CONFIG_DELAY_MS		2000
-#define GET_CONFIG_RETRY_COUNT		50
-#define WAIT_BATT_ID_READY_MS		200
+/*
+ * Step Charging Configuration
+ * Update the table based on the battery profile
+ * Supports VBATT and SOC based source
+ * range data must be in increasing ranges and shouldn't overlap
+ */
+static struct step_chg_cfg step_chg_config = {
+	.psy_prop	= POWER_SUPPLY_PROP_VOLTAGE_NOW,
+	.prop_name	= "VBATT",
+	.hysteresis	= 100000, /* 100mV */
+	.fcc_cfg	= {
+		/* VBAT_LOW	VBAT_HIGH	FCC */
+		{3600000,	4000000,	3000000},
+		{4001000,	4200000,	2800000},
+		{4201000,	4400000,	2000000},
+	},
+	/*
+	 *	SOC STEP-CHG configuration example.
+	 *
+	 *	.psy_prop = POWER_SUPPLY_PROP_CAPACITY,
+	 *	.prop_name = "SOC",
+	 *	.fcc_cfg	= {
+	 *		//SOC_LOW	SOC_HIGH	FCC
+	 *		{20,		70,		3000000},
+	 *		{70,		90,		2750000},
+	 *		{90,		100,		2500000},
+	 *	},
+	 */
+};
+
+/*
+ * Jeita Charging Configuration
+ * Update the table based on the battery profile
+ * Please ensure that the TEMP ranges are programmed in the hw so that
+ * an interrupt is issued and a consequent psy changed will cause us to
+ * react immediately.
+ * range data must be in increasing ranges and shouldn't overlap.
+ * Gaps are okay
+ */
+static struct jeita_fcc_cfg jeita_fcc_config = {
+	.psy_prop	= POWER_SUPPLY_PROP_TEMP,
+	.prop_name	= "BATT_TEMP",
+	.hysteresis	= 10, /* 1degC hysteresis */
+	.fcc_cfg	= {
+		/* TEMP_LOW	TEMP_HIGH	FCC */
+		{0,		100,		3000000},
+		{101,		200,		3000000},
+		{201,		450,		3000000},
+		{451,		550,		3000000},
+	},
+};
+
+static struct jeita_fv_cfg jeita_fv_config = {
+	.psy_prop	= POWER_SUPPLY_PROP_TEMP,
+	.prop_name	= "BATT_TEMP",
+	.hysteresis	= 10, /* 1degC hysteresis */
+	.fv_cfg		= {
+		/* TEMP_LOW	TEMP_HIGH	FCC */
+		{0,		100,		4200000},
+		{101,		450,		4400000},
+		{451,		550,		4200000},
+	},
+};
 
 static bool is_batt_available(struct step_chg_info *chip)
 {
