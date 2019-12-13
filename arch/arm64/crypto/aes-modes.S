@@ -39,27 +39,27 @@
 
 #if INTERLEAVE == 2
 
-aes_encrypt_block2x:
+SYM_FUNC_START_LOCAL(aes_encrypt_block2x)
 	encrypt_block2x	v0, v1, w3, x2, x6, w7
 	ret
-ENDPROC(aes_encrypt_block2x)
+SYM_FUNC_END(aes_encrypt_block2x)
 
-aes_decrypt_block2x:
+SYM_FUNC_START_LOCAL(aes_decrypt_block2x)
 	decrypt_block2x	v0, v1, w3, x2, x6, w7
 	ret
-ENDPROC(aes_decrypt_block2x)
+SYM_FUNC_END(aes_decrypt_block2x)
 
 #elif INTERLEAVE == 4
 
-aes_encrypt_block4x:
+SYM_FUNC_START_LOCAL(aes_encrypt_block4x)
 	encrypt_block4x	v0, v1, v2, v3, w3, x2, x6, w7
 	ret
-ENDPROC(aes_encrypt_block4x)
+SYM_FUNC_END(aes_encrypt_block4x)
 
-aes_decrypt_block4x:
+SYM_FUNC_START_LOCAL(aes_decrypt_block4x)
 	decrypt_block4x	v0, v1, v2, v3, w3, x2, x6, w7
 	ret
-ENDPROC(aes_decrypt_block4x)
+SYM_FUNC_END(aes_decrypt_block4x)
 
 #else
 #error INTERLEAVE should equal 2 or 4

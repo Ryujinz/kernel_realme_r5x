@@ -69,7 +69,7 @@
 	 * void sha1_ce_transform(struct sha1_ce_state *sst, u8 const *src,
 	 *			  int blocks)
 	 */
-ENTRY(sha1_ce_transform)
+SYM_FUNC_START(sha1_ce_transform)
 	/* load round constants */
 	adr		x6, .Lsha1_rcon
 	ld1r		{k0.4s}, [x6], #4
@@ -149,4 +149,4 @@ CPU_LE(	rev32		v11.16b, v11.16b	)
 3:	st1		{dgav.4s}, [x0]
 	str		dgb, [x0, #16]
 	ret
-ENDPROC(sha1_ce_transform)
+SYM_FUNC_END(sha1_ce_transform)

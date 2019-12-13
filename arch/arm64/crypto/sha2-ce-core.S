@@ -76,7 +76,7 @@
 	 * void sha2_ce_transform(struct sha256_ce_state *sst, u8 const *src,
 	 *			  int blocks)
 	 */
-ENTRY(sha2_ce_transform)
+SYM_FUNC_START(sha2_ce_transform)
 	/* load round constants */
 	adr		x8, .Lsha2_rcon
 	ld1		{ v0.4s- v3.4s}, [x8], #64
@@ -152,4 +152,4 @@ CPU_LE(	rev32		v19.16b, v19.16b	)
 	/* store new state */
 3:	st1		{dgav.4s, dgbv.4s}, [x0]
 	ret
-ENDPROC(sha2_ce_transform)
+SYM_FUNC_END(sha2_ce_transform)

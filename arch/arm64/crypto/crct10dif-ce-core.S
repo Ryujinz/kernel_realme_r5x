@@ -80,7 +80,7 @@
 
 	vzr		.req	v13
 
-ENTRY(crc_t10dif_pmull)
+SYM_FUNC_START(crc_t10dif_pmull)
 	movi		vzr.16b, #0		// init zero register
 
 	// adjust the 16-bit initial_crc value, scale it to 32 bits
@@ -340,7 +340,7 @@ _less_than_16_left:
 	eor		v0.16b, v0.16b, v9.16b
 	tbl		v7.16b, {v7.16b}, v0.16b
 	b		_128_done
-ENDPROC(crc_t10dif_pmull)
+SYM_FUNC_END(crc_t10dif_pmull)
 
 // precomputed constants
 // these constants are precomputed from the poly:
