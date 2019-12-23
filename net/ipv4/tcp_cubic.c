@@ -393,7 +393,7 @@ static void hystart_update(struct sock *sk, u32 delay)
 		/* first detection parameter - ack-train detection */
 		if ((s32)(now - ca->last_ack) <= hystart_ack_delta_us) {
 			ca->last_ack = now;
-			if ((s32)(now - ca->round_start) > ca->delay_min >> 4) {
+			if ((s32)(now - ca->round_start) > ca->delay_min >> 1) {
 				ca->found = 1;
 				NET_INC_STATS(sock_net(sk),
 					      LINUX_MIB_TCPHYSTARTTRAINDETECT);
@@ -429,7 +429,7 @@ static void hystart_update(struct sock *sk, u32 delay)
 	}
 }
 
-static void cubictcp_acked(struct sock *sk, const struct ack_sample *sample)
+static void bictcp_acked(struct sock *sk, const struct ack_sample *sample)
 {
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bictcp *ca = inet_csk_ca(sk);
