@@ -3365,7 +3365,460 @@ irqreturn_t smblib_handle_usb_psy_changed(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-irqreturn_t smblib_handle_usbin_uv(int irq, void *data)
+/************************
+ * PARALLEL PSY GETTERS *
+ ************************/
+
+#ifdef CONFIG_MACH_ASUS_SDM660
+#define ICL_475mA	0x12
+#define ICL_500mA	0x13
+#define ICL_950mA	0x26
+#define ICL_1000mA	0x28
+#define ICL_1425mA	0x39
+#define ICL_1500mA	0x3C
+#define ICL_1900mA	0x4C
+#define ICL_2000mA	0x50
+#define ICL_2850mA	0x72
+#define ICL_3000mA	0x78
+#define ASUS_MONITOR_CYCLE	60000
+#define TITAN_750K_MIN	675
+#define TITAN_750K_MAX	851
+#define TITAN_200K_MIN	306
+#define TITAN_200K_MAX	406
+#define VADC_THD_300MV	300
+#define VADC_THD_900MV	900
+#define VADC_THD_1000MV	1000
+
+void smblib_asus_monitor_start(struct smb_charger *chg, int time)
+{
+	cancel_delayed_work(&chg->asus_min_monitor_work);
+	schedule_delayed_work(&chg->asus_min_monitor_work,
+				msecs_to_jiffies(time));
+}
+
+#define EN_BAT_CHG_EN_COMMAND_TRUE	0
+#define EN_BAT_CHG_EN_COMMAND_FALSE	BIT(0)
+#define SMBCHG_FLOAT_VOLTAGE_VALUE_4P004		0x45
+#define SMBCHG_FLOAT_VOLTAGE_VALUE_4P095		0x51
+#define SMBCHG_FLOAT_VOLTAGE_VALUE_4P064		0x4D
+#define SMBCHG_FLOAT_VOLTAGE_VALUE_4P350		0x73
+#define SMBCHG_FLOAT_VOLTAGE_VALUE_4P357		0x74
+#define SMBCHG_FLOAT_VOLTAGE_VALUE_4P385		0x78
+#define SMBCHG_FLOAT_VOLTAGE_VALUE_4P392		0x79
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_850MA 	0x22
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_925MA 	0x25
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_1400MA 	0x38
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_1475MA 	0x3B
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_1500MA 	0x3C
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_2000MA 	0x50
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_2050MA 	0x52
+#define SMBCHG_FAST_CHG_CURRENT_VALUE_3000MA 	0x78
+
+#ifdef CONFIG_MACH_ASUS_X01BD
+#define ASUS_CUSTOM_JEITA_SET_MODIFY
+#endif
+
+enum JEITA_state {
+	JEITA_STATE_INITIAL,
+	JEITA_STATE_LESS_THAN_0,
+	JEITA_STATE_RANGE_0_to_100,
+#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+	JEITA_STATE_RANGE_100_to_450,
+	JEITA_STATE_RANGE_450_to_550,
+	JEITA_STATE_LARGER_THAN_550,
+#else
+	JEITA_STATE_RANGE_100_to_500,
+	JEITA_STATE_RANGE_500_to_600,
+	JEITA_STATE_LARGER_THAN_600,
+#endif
+};
+
+static int SW_recharge(struct smb_charger *chg)
+{
+	int capacity, rc;
+	u8 termination_reg;
+	bool termination_done = 0;
+
+	/* reg 1006, bit2-bit0 = BATTERY_CHARGER_STATUS */
+	rc = smblib_read(chg, BATTERY_CHARGER_STATUS_1_REG, &termination_reg);
+	if (rc < 0)
+		pr_err("%s: Couldn't read BATTERY_CHARGER_STATUS_1_REG\n",
+			__func__);
+
+	if ((termination_reg & BATTERY_CHARGER_STATUS_MASK) == 0x05)
+		termination_done = 1;
+
+	capacity = asus_get_prop_batt_capacity(smbchg_dev);
+
+	pr_debug("%s: bat_capacity = %d, termination_reg = 0x%x\n", __func__,
+			capacity, termination_reg);
+
+	if (capacity <= 98 && termination_done) {
+		pr_info("will start SW_recharge\n");
+
+		/* reg=1042, CHARGING_ENABLE_CMD
+		 * bit0=1, CHARGING_ENABLE_CMD_IS_ACTIVE
+		 */
+		rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
+						CHARGING_ENABLE_CMD_BIT,
+						CHARGING_ENABLE_CMD_BIT);
+		if (rc < 0) {
+			pr_err("%s: Couldn't write charging_enable\n", __func__);
+			return rc;
+		}
+
+		/* reg=1042, CHARGING_ENABLE_CMD
+		 * bit0=0, CHARGING_ENABLE_CMD_IS_INACTIVE
+		 */
+		rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
+						CHARGING_ENABLE_CMD_BIT, 0);
+		if (rc < 0) {
+			pr_err("%s: Couldn't write charging_enable\n", __func__);
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
+int smbchg_jeita_judge_state(int old_State, int batt_tempr)
+{
+	int result_State;
+
+	/* decide value to set each reg
+	 * (Vchg, Charging enable, Fast charge current)
+	 */
+	/* batt_tempr < 0 */
+	if (batt_tempr < 0) {
+		result_State = JEITA_STATE_LESS_THAN_0;
+	/* 0 <= batt_tempr < 10 */
+	} else if (batt_tempr < 100) {
+		result_State = JEITA_STATE_RANGE_0_to_100;
+#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+	/* 10 <= batt_tempr < 45 */
+	} else if (batt_tempr < 450) {
+		result_State = JEITA_STATE_RANGE_100_to_450;
+	/* 45 <= batt_tempr < 55 */
+	} else if (batt_tempr < 550) {
+		result_State = JEITA_STATE_RANGE_450_to_550;
+	/* 55 <= batt_tempr */
+	} else
+		result_State = JEITA_STATE_LARGER_THAN_550;
+#else
+	/* 10 <= batt_tempr < 50 */
+	} else if (batt_tempr < 500) {
+		result_State = JEITA_STATE_RANGE_100_to_500;
+	/* 50 <= batt_tempr < 60 */
+	} else if (batt_tempr < 600) {
+		result_State = JEITA_STATE_RANGE_500_to_600;
+	/* 60 <= batt_tempr */
+	} else
+		result_State = JEITA_STATE_LARGER_THAN_600;
+#endif
+
+	/* BSP david: do 3 degree hysteresis */
+	if (old_State == JEITA_STATE_LESS_THAN_0 &&
+		result_State == JEITA_STATE_RANGE_0_to_100) {
+		if (batt_tempr <= 30)
+			result_State = old_State;
+	}
+
+#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+	else if (old_State == JEITA_STATE_RANGE_0_to_100 &&
+		result_State == JEITA_STATE_RANGE_100_to_450) {
+		if (batt_tempr <= 130)
+			result_State = old_State;
+	} else if (old_State == JEITA_STATE_RANGE_450_to_550 &&
+		result_State == JEITA_STATE_RANGE_100_to_450) {
+		if (batt_tempr >= 420)
+			result_State = old_State;
+	} else if (old_State == JEITA_STATE_LARGER_THAN_550 &&
+		result_State == JEITA_STATE_RANGE_450_to_550) {
+		if (batt_tempr >= 520)
+			result_State = old_State;
+	}
+#else
+	else if (old_State == JEITA_STATE_RANGE_0_to_100 &&
+		result_State == JEITA_STATE_RANGE_100_to_500) {
+		if (batt_tempr <= 130)
+			result_State = old_State;
+	} else if (old_State == JEITA_STATE_RANGE_500_to_600 &&
+		result_State == JEITA_STATE_RANGE_100_to_500) {
+		if (batt_tempr >= 470)
+			result_State = old_State;
+	} else if (old_State == JEITA_STATE_LARGER_THAN_600 &&
+		result_State == JEITA_STATE_RANGE_500_to_600) {
+		if (batt_tempr >= 570)
+			result_State = old_State;
+	}
+#endif
+
+	return result_State;
+}
+
+static int jeita_status_regs_write(u8 chg_en, u8 FV_CFG, u8 FCC)
+{
+	int rc;
+	u8 ICL_reg;
+
+	/* reg=1042, bit0
+	 * reg=1042, CHARGING_ENABLE_CMD
+	 * bit0=1, CHARGING_ENABLE_CMD_IS_ACTIVE
+	 */
+	rc = smblib_masked_write(smbchg_dev, CHARGING_ENABLE_CMD_REG,
+					CHARGING_ENABLE_CMD_BIT, chg_en);
+	if (rc < 0) {
+		pr_err("Couldn't write charging_enable rc = %d\n", rc);
+		return rc;
+	}
+
+	/* reg=1070, bit7-bit0 */
+	rc = smblib_masked_write(smbchg_dev, FLOAT_VOLTAGE_CFG_REG,
+					FLOAT_VOLTAGE_SETTING_MASK, FV_CFG);
+	if (rc < 0) {
+		pr_err("Couldn't write FV_CFG_reg_value rc = %d\n", rc);
+		return rc;
+	}
+
+	/* reg=1061, bit7-bit0 */
+	rc = smblib_masked_write(smbchg_dev, FAST_CHARGE_CURRENT_CFG_REG,
+					FAST_CHARGE_CURRENT_SETTING_MASK, FCC);
+	if (rc < 0) {
+		pr_err("Couldn't write FCC_reg_value rc = %d\n", rc);
+		return rc;
+	}
+
+	/* reg1370, usbin_limit */
+	rc = smblib_read(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG, &ICL_reg);
+	if (rc < 0)
+		pr_err("%s: Couldn't read USBIN_CURRENT_LIMIT_CFG_REG\n",
+			__func__);
+
+	pr_debug("jeita_status_regs_write  ICL = 0x%x\n", ICL_reg);
+	asus_smblib_rerun_aicl(smbchg_dev);
+
+	/* reg1370, usbin_limit */
+	rc = smblib_read(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG, &ICL_reg);
+	if (rc < 0)
+		pr_err("%s: Couldn't read USBIN_CURRENT_LIMIT_CFG_REG\n",
+			__func__);
+
+	pr_debug("jeita_status_regs_write  ICL2 = 0x%x\n", ICL_reg);
+
+	return 0;
+}
+
+void asus_update_usb_connector_state(struct smb_charger *chip)
+{
+	int64_t  phy_volta = 0;
+	struct qpnp_vadc_result usb_vadc_result;
+	int rc;
+
+	chip->gpio12_vadc_dev = qpnp_get_vadc(chip->dev, "chg-alert");
+
+	if (IS_ERR(chip->gpio12_vadc_dev)) {
+		pr_err(" Error get chg_alert vadc rc = %d \n", rc);
+		rc = PTR_ERR(chip->gpio12_vadc_dev);
+		if(rc != -EPROBE_DEFER)
+			pr_err(" Couldn't get chg_alert vadc rc = %d \n", rc);
+		return;
+	}
+
+	if(chip->gpio12_vadc_dev) {
+		qpnp_vadc_read(chip->gpio12_vadc_dev, VADC_AMUX8_GPIO,
+				&usb_vadc_result);
+		phy_volta=usb_vadc_result.physical;
+		pr_debug("qpnp_vadc_read: phy_volta = %lld\n", phy_volta);
+	} else {
+		pr_debug("NONE gpio12_vadc_dev \n");
+		return;
+	}
+}
+
+void jeita_rule(void)
+{
+	static int state = JEITA_STATE_INITIAL;
+	int rc;
+	int bat_volt;
+	int bat_temp;
+	int bat_health;
+	int bat_capacity;
+	u8 charging_enable;
+	u8 FV_CFG_reg_value;
+	u8 FCC_reg_value;
+	u8 FV_reg;
+	u8 ICL_reg;
+	u8 FCC_reg;
+	u8 USBIN_ICL_reg;
+
+	/* reg1090, 0x10, =bit4=1
+	 * JEITA_EN_HARDLIMIT=enable
+	 * JEITA Temperature Hard Limit Pauses Charging
+	 */
+	rc = smblib_write(smbchg_dev, JEITA_EN_CFG_REG, 0x10);
+	if (rc < 0)
+		pr_err("%s: Failed to set JEITA_EN_CFG_REG\n", __func__);
+
+	/* reg1070, FLOAT_VOLTAGE */
+	rc = smblib_read(smbchg_dev, FLOAT_VOLTAGE_CFG_REG, &FV_reg);
+	if (rc < 0)
+		pr_err("%s: Couldn't read FLOAT_VOLTAGE_CFG_REG\n", __func__);
+
+	/* reg1370, usbin_limit */
+	rc = smblib_read(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG, &ICL_reg);
+	if (rc < 0)
+		pr_err("%s: Couldn't read USBIN_CURRENT_LIMIT_CFG_REG\n",
+			__func__);
+
+	/* reg=1061, fast cc */
+	rc = smblib_read(smbchg_dev, FAST_CHARGE_CURRENT_CFG_REG, &FCC_reg);
+	if (rc < 0)
+		pr_err("%s: Couldn't read fast_CURRENT_LIMIT_CFG_REG\n",
+			__func__);
+
+	/* reg=1366 */
+	rc = smblib_read(smbchg_dev, USBIN_ICL_OPTIONS_REG, &USBIN_ICL_reg);
+	if (rc < 0)
+		pr_err("%s: Couldn't read USBIN_ICL_reg\n", __func__);
+
+	pr_debug("jeita_rule Read fast CC=0x%x,USBIN_ICL_reg=0x%x\n", FCC_reg,
+			USBIN_ICL_reg);
+
+	bat_health = asus_get_batt_health();
+	pr_debug("jeita_rule  bat_health=%d\n", bat_health);
+
+	bat_temp = asus_get_prop_batt_temp(smbchg_dev);
+	if (bat_temp >= START_REPORT_BAT_TEMPRATURE) {
+		power_supply_changed(smbchg_dev->batt_psy);
+		pr_debug("[%s]line=%d: bat_temp=%d\n", __func__, __LINE__,
+				bat_temp);
+	}
+
+	bat_volt = asus_get_prop_batt_volt(smbchg_dev);
+	bat_capacity = asus_get_prop_batt_capacity(smbchg_dev);
+	state = smbchg_jeita_judge_state(state, bat_temp);
+	pr_debug("%s: state=%d,batt_health = %s, bat_temp = %d, bat_volt = %d, bat_capacity=%d,ICL = 0x%x, FV_reg=0x%x\n",
+		__func__,state, health_type[bat_health], bat_temp, bat_volt,
+		bat_capacity, ICL_reg, FV_reg);
+
+	switch (state) {
+	case JEITA_STATE_LESS_THAN_0:
+		charging_enable = EN_BAT_CHG_EN_COMMAND_FALSE;
+		FV_CFG_reg_value = SMBCHG_FLOAT_VOLTAGE_VALUE_4P357;
+		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_850MA;
+		break;
+
+	case JEITA_STATE_RANGE_0_to_100:
+		charging_enable = EN_BAT_CHG_EN_COMMAND_TRUE;
+		FV_CFG_reg_value = SMBCHG_FLOAT_VOLTAGE_VALUE_4P385;
+		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_3000MA;
+
+		rc = SW_recharge(smbchg_dev);
+		if (rc < 0)
+			pr_err("%s: SW_recharge failed rc = %d\n", __func__, rc);
+
+		break;
+
+#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+	case JEITA_STATE_RANGE_100_to_450:
+#else
+	case JEITA_STATE_RANGE_100_to_500:
+#endif
+		charging_enable = EN_BAT_CHG_EN_COMMAND_TRUE;
+		FV_CFG_reg_value = SMBCHG_FLOAT_VOLTAGE_VALUE_4P385;
+		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_3000MA;
+
+		rc = SW_recharge(smbchg_dev);
+		if (rc < 0)
+			pr_err("%s: SW_recharge failed rc = %d\n", __func__, rc);
+
+		break;
+
+#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+	case JEITA_STATE_RANGE_450_to_550:
+#else
+	case JEITA_STATE_RANGE_500_to_600:
+#endif
+		charging_enable = EN_BAT_CHG_EN_COMMAND_TRUE;
+		FV_CFG_reg_value = SMBCHG_FLOAT_VOLTAGE_VALUE_4P385;
+		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_3000MA;
+		break;
+
+#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+	case JEITA_STATE_LARGER_THAN_550:
+#else
+	case JEITA_STATE_LARGER_THAN_600:
+#endif
+		charging_enable = EN_BAT_CHG_EN_COMMAND_FALSE;
+		FV_CFG_reg_value = SMBCHG_FLOAT_VOLTAGE_VALUE_4P004;
+		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_1475MA;
+		break;
+	}
+
+	if (smartchg_stop_flag) {
+		pr_debug("%s: Stop charging, smart = %d\n", __func__,
+				smartchg_stop_flag);
+		charging_enable = EN_BAT_CHG_EN_COMMAND_FALSE;
+	} else {
+		FV_CFG_reg_value = SMBCHG_FLOAT_VOLTAGE_VALUE_4P385;
+		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_3000MA;
+	}
+
+	rc = jeita_status_regs_write(charging_enable, FV_CFG_reg_value,
+					FCC_reg_value);
+	if (rc < 0)
+		pr_err("%s: Couldn't write jeita_status_register rc = %d\n",
+			__func__, rc);
+}
+
+void asus_min_monitor_work(struct work_struct *work)
+{
+	int rc;
+
+	if (!smbchg_dev) {
+		pr_err("%s: smbchg_dev is null due to driver probed isn't ready\n",
+			__func__);
+		return;
+	}
+
+	if (!asus_get_prop_usb_present(smbchg_dev)) {
+		smblib_uusb_removal(smbchg_dev);
+		return;
+	}
+
+	jeita_rule();
+
+	if (charger_limit_enable_flag) {
+		if (asus_get_prop_batt_capacity(smbchg_dev) >=
+			charger_limit_value) {
+			pr_debug("%s: charger limit is enable & over, stop charging\n",
+				__func__);
+			rc = smblib_masked_write(smbchg_dev,
+						CHARGING_ENABLE_CMD_REG,
+						CHARGING_ENABLE_CMD_BIT, 1);
+		} else
+			rc = smblib_masked_write(smbchg_dev,
+						CHARGING_ENABLE_CMD_REG,
+						CHARGING_ENABLE_CMD_BIT, 0);
+
+		pr_debug("%s: charger limit flag = %d ,limit-soc = %d & over, stop charging\n",
+			__func__, charger_limit_enable_flag,
+			charger_limit_value);
+	}
+
+	asus_update_usb_connector_state(smbchg_dev);
+
+	if (asus_get_prop_usb_present(smbchg_dev)) {
+		last_jeita_time = current_kernel_time();
+		schedule_delayed_work(&smbchg_dev->asus_min_monitor_work,
+					msecs_to_jiffies(ASUS_MONITOR_CYCLE));
+		schedule_delayed_work(&smbchg_dev->asus_batt_RTC_work, 0);
+	}
+
+	asus_smblib_relax(smbchg_dev);
+}
+
+void asus_chg_flow_work(struct work_struct *work)
 {
 	struct smb_irq_data *irq_data = data;
 	struct smb_charger *chg = irq_data->parent_data;
