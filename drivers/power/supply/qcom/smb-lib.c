@@ -3827,9 +3827,61 @@ void asus_chg_flow_work(struct work_struct *work)
 	int rc;
 	u8 stat = 0, max_pulses = 0;
 
-	smblib_dbg(chg, PR_INTERRUPT, "IRQ: %s\n", irq_data->name);
-	if (!chg->irq_info[SWITCH_POWER_OK_IRQ].irq_data)
-		return IRQ_HANDLED;
+	switch (apsd_result->bit) {
+	case SDP_CHARGER_BIT:
+	case FLOAT_CHARGER_BIT:
+		rc = smblib_read(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG,
+					&USBIN_1_cc);
+		if (rc < 0)
+			pr_err("%s: Couldn't read fast_CURRENT_LIMIT_CFG_REG\n",
+				__func__);
+
+		set_icl = ICL_500mA;
+
+		rc = smblib_masked_write(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG,
+						USBIN_CURRENT_LIMIT_MASK,
+						set_icl);
+		if (rc < 0)
+			pr_err("%s: Failed to set USBIN_CURRENT_LIMIT\n",
+				__func__);
+
+		asus_smblib_rerun_aicl(smbchg_dev);
+		smblib_asus_monitor_start(smbchg_dev, 0);
+		break;
+
+	case CDP_CHARGER_BIT:
+		set_icl = ICL_3000mA;
+
+		rc = smblib_masked_write(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG,
+						USBIN_CURRENT_LIMIT_MASK,
+						set_icl);
+		if (rc < 0)
+			pr_err("%s: Failed to set USBIN_CURRENT_LIMIT\n",
+				__func__);
+
+		rc = smblib_read(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG,
+					&USBIN_1_cc);
+		if (rc < 0)
+			pr_err("%s: Couldn't read fast_CURRENT_LIMIT_CFG_REG\n",
+				__func__);
+
+		asus_smblib_rerun_aicl(smbchg_dev);
+		smblib_asus_monitor_start(smbchg_dev, 0);
+		break;
+
+	case OCP_CHARGER_BIT:
+		set_icl = ICL_1000mA;
+
+		rc = smblib_masked_write(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG,
+						USBIN_CURRENT_LIMIT_MASK,
+						set_icl);
+		if (rc < 0)
+			pr_err("%s: Failed to set USBIN_CURRENT_LIMIT\n",
+				__func__);
+
+		asus_smblib_rerun_aicl(smbchg_dev);
+		smblib_asus_monitor_start(smbchg_dev, 0);
+		break;
 
 	wdata = &chg->irq_info[SWITCH_POWER_OK_IRQ].irq_data->storm_data;
 	reset_storm_count(wdata);
