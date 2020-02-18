@@ -110,7 +110,7 @@ SYM_FUNC_END(aes_decrypt_block4x)
 	 *		   int blocks, int first)
 	 */
 
-AES_ENTRY(aes_ecb_encrypt)
+AES_FUNC_START(aes_ecb_encrypt)
 	FRAME_PUSH
 	cbz		w5, .LecbencloopNx
 
@@ -143,10 +143,10 @@ AES_ENTRY(aes_ecb_encrypt)
 .Lecbencout:
 	FRAME_POP
 	ret
-AES_ENDPROC(aes_ecb_encrypt)
+AES_FUNC_END(aes_ecb_encrypt)
 
 
-AES_ENTRY(aes_ecb_decrypt)
+AES_FUNC_START(aes_ecb_decrypt)
 	FRAME_PUSH
 	cbz		w5, .LecbdecloopNx
 
@@ -179,7 +179,7 @@ AES_ENTRY(aes_ecb_decrypt)
 .Lecbdecout:
 	FRAME_POP
 	ret
-AES_ENDPROC(aes_ecb_decrypt)
+AES_FUNC_END(aes_ecb_decrypt)
 
 
 	/*
@@ -189,7 +189,7 @@ AES_ENDPROC(aes_ecb_decrypt)
 	 *		   int blocks, u8 iv[], int first)
 	 */
 
-AES_ENTRY(aes_cbc_encrypt)
+AES_FUNC_START(aes_cbc_encrypt)
 	cbz		w6, .Lcbcencloop
 
 	ld1		{v0.16b}, [x5]			/* get iv */
@@ -204,10 +204,10 @@ AES_ENTRY(aes_cbc_encrypt)
 	bne		.Lcbcencloop
 	st1		{v0.16b}, [x5]			/* return iv */
 	ret
-AES_ENDPROC(aes_cbc_encrypt)
+AES_FUNC_END(aes_cbc_encrypt)
 
 
-AES_ENTRY(aes_cbc_decrypt)
+AES_FUNC_START(aes_cbc_decrypt)
 	FRAME_PUSH
 	cbz		w6, .LcbcdecloopNx
 
@@ -259,7 +259,7 @@ AES_ENTRY(aes_cbc_decrypt)
 	FRAME_POP
 	st1		{v7.16b}, [x5]			/* return iv */
 	ret
-AES_ENDPROC(aes_cbc_decrypt)
+AES_FUNC_END(aes_cbc_decrypt)
 
 
 	/*
@@ -267,7 +267,7 @@ AES_ENDPROC(aes_cbc_decrypt)
 	 *		   int blocks, u8 ctr[], int first)
 	 */
 
-AES_ENTRY(aes_ctr_encrypt)
+AES_FUNC_START(aes_ctr_encrypt)
 	FRAME_PUSH
 	cbz		w6, .Lctrnotfirst	/* 1st time around? */
 	enc_prepare	w3, x2, x6
@@ -360,7 +360,7 @@ AES_ENTRY(aes_ctr_encrypt)
 	rev		x7, x7
 	ins		v4.d[0], x7
 	b		.Lctrcarrydone
-AES_ENDPROC(aes_ctr_encrypt)
+AES_FUNC_END(aes_ctr_encrypt)
 	.ltorg
 
 
@@ -383,7 +383,7 @@ AES_ENDPROC(aes_ctr_encrypt)
 CPU_LE(	.quad		1, 0x87		)
 CPU_BE(	.quad		0x87, 1		)
 
-AES_ENTRY(aes_xts_encrypt)
+AES_FUNC_START(aes_xts_encrypt)
 	FRAME_PUSH
 	cbz		w7, .LxtsencloopNx
 
@@ -452,10 +452,10 @@ AES_ENTRY(aes_xts_encrypt)
 .Lxtsencout:
 	FRAME_POP
 	ret
-AES_ENDPROC(aes_xts_encrypt)
+AES_FUNC_END(aes_xts_encrypt)
 
 
-AES_ENTRY(aes_xts_decrypt)
+AES_FUNC_START(aes_xts_decrypt)
 	FRAME_PUSH
 	cbz		w7, .LxtsdecloopNx
 
@@ -524,13 +524,13 @@ AES_ENTRY(aes_xts_decrypt)
 .Lxtsdecout:
 	FRAME_POP
 	ret
-AES_ENDPROC(aes_xts_decrypt)
+AES_FUNC_END(aes_xts_decrypt)
 
 	/*
 	 * aes_mac_update(u8 const in[], u32 const rk[], int rounds,
 	 *		  int blocks, u8 dg[], int enc_before, int enc_after)
 	 */
-AES_ENTRY(aes_mac_update)
+AES_FUNC_START(aes_mac_update)
 	ld1		{v0.16b}, [x4]			/* get dg */
 	enc_prepare	w2, x1, x7
 	cbnz		w5, .Lmacenc
@@ -551,4 +551,4 @@ AES_ENTRY(aes_mac_update)
 .Lmacout:
 	st1		{v0.16b}, [x4]			/* return dg */
 	ret
-AES_ENDPROC(aes_mac_update)
+AES_FUNC_END(aes_mac_update)
