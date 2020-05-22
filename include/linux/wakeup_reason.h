@@ -20,10 +20,9 @@
 
 #define MAX_SUSPEND_ABORT_LEN 256
 
-void log_wakeup_reason(int irq);
-int check_wakeup_reason(int irq);
-
-#ifdef CONFIG_SUSPEND
+#if defined(CONFIG_SUSPEND) && defined (CONFIG_PM_DEBUG)
+void log_irq_wakeup_reason(int irq);
+void log_threaded_irq_wakeup_reason(int irq, int parent_irq);
 void log_suspend_abort_reason(const char *fmt, ...);
 #else
 static inline void log_suspend_abort_reason(const char *fmt, ...) { }
