@@ -93,6 +93,10 @@ scm_version()
 				head="$(echo $head | cut -c1-12)"
 				printf '%s%s' -g $head
 			fi
+
+			# Avoid asking git for tag as it could be extremely slow.
+			# We print -g{commitish}.
+			printf '%s%s' -g $head
 		fi
 
 		# Is this git on svn?
