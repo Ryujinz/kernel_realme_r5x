@@ -561,6 +561,19 @@ config OKL4_USER_VIRQ
 	  Say Y here if you want to enable the driver that exposes OKL4
 	  virtual interrupts and virtual interrupt sources which enable
           inter-VM notifications.
+	  
+config BATTERY_SAVER
+	bool "Battery saver mode for kernelspace"
+	help
+	  This driver creates a sysfs toggle that can be enabled when
+	  battery saver mode is activated in userspace, and provides
+	  functions to check the status of battery saver and to activate
+	  it from anywhere in the kernel.
+
+	  The former can be used to disable features that may otherwise
+	  drain battery faster, such as CPU and DDR boosting.
+
+	  If in doubt, say N.
 
 config OKL4_RINGBUF
 	tristate "Test driver for OKL4 inter-cell communication"
