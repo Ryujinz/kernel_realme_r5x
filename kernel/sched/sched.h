@@ -32,6 +32,7 @@
 #include <linux/irq_work.h>
 #include <linux/tick.h>
 #include <linux/slab.h>
+#include <linux/battery_saver.h>
 
 #ifdef CONFIG_PARAVIRT
 #include <asm/paravirt.h>
@@ -3074,7 +3075,7 @@ extern int sched_boost(void);
 #else
 static inline int sched_boost(void)
 {
-	return sched_boost_type;
+	return unlikely(is_battery_saver_on()) ? 0 : sched_boost_type;
 }
 #endif /* CONFIG_PRODUCT_REALME_TRINKET */
 extern int preferred_cluster(struct sched_cluster *cluster,
