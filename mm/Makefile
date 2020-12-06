@@ -104,16 +104,5 @@ obj-$(CONFIG_DEBUG_PAGE_REF) += debug_page_ref.o
 obj-$(CONFIG_HARDENED_USERCOPY) += usercopy.o
 obj-$(CONFIG_PERCPU_STATS) += percpu-stats.o
 obj-$(CONFIG_HMM) += hmm.o
-obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
-#if defined(CONFIG_PRODUCT_REALME_TRINKET) && defined(CONFIG_PROCESS_RECLAIM)
-#/* Kui.Zhang@TEC.Kernel.Performance, 2019-03-13, add new interface for process memory reclaim*/
-obj-$(CONFIG_PROCESS_RECLAIM) += process_mm_reclaim.o
-#endif /*defined(CONFIG_PRODUCT_REALME_TRINKET) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)*/
-#ifdef CONFIG_PRODUCT_REALME_TRINKET
-#/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
-obj-$(CONFIG_OPPO_MEM_MONITOR) += memory_monitor.o
-#endif /*CONFIG_PRODUCT_REALME_TRINKET*/
-#if defined(CONFIG_PRODUCT_REALME_TRINKET) && defined(CONFIG_PROCESS_RECLAIM)
-#/* Kui.Zhang@TEC.Kernel.Performance, 2019-03-13, add new interface for process memory reclaim*/
-obj-$(CONFIG_PROCESS_RECLAIM) += process_mm_reclaim.o
-#endif /*defined(CONFIG_PRODUCT_REALME_TRINKET) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)*/
+
+CFLAGS_kmemleak.o += -DCONFIG_DEBUG_FS
