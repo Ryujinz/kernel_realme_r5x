@@ -3385,8 +3385,7 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 
 	init_completion(&ctrl_pdata->wake_comp);
 	init_waitqueue_head(&ctrl_pdata->wake_waitq);
-	ctrl_pdata->wake_thread =
-		kthread_run_perf_critical(mdss_dsi_disp_wake_thread,
+	ctrl_pdata->wake_thread = kthread_run(mdss_dsi_disp_wake_thread,
 					      ctrl_pdata, "mdss_display_wake");
 	if (IS_ERR(ctrl_pdata->wake_thread)) {
 		rc = PTR_ERR(ctrl_pdata->wake_thread);
@@ -3877,6 +3876,7 @@ static int mdss_dsi_ctrl_remove(struct platform_device *pdev)
 
 	fb_unregister_client(&ctrl_pdata->wake_notif);
 	kthread_stop(ctrl_pdata->wake_thread);
+	mdss_dsi_pm_qos_remove_request(ctrl_pdata->shared_data);
 
 	if (msm_dss_config_vreg(&pdev->dev,
 			ctrl_pdata->panel_power_data.vreg_config,
