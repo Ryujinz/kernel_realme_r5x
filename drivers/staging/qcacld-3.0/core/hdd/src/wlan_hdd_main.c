@@ -183,7 +183,6 @@ static unsigned int dev_num = 1;
 static struct cdev wlan_hdd_state_cdev;
 static struct class *class;
 static dev_t device;
-static bool hdd_loaded = false;
 
 #define HDD_OPS_INACTIVITY_TIMEOUT (120000)
 #define MAX_OPS_NAME_STRING_SIZE 20
@@ -14166,15 +14165,11 @@ static void hdd_driver_unload(void)
  *
  * Return: 0 for success, errno on failure
  */
-static int hdd_module_init(void)
+static int __init hdd_module_init(void)
 {
 	int ret;
 
-	ret = wlan_hdd_state_ctrl_param_create();
-	if (ret)
-		pr_err("wlan_hdd_state_create:%x\n", ret);
-
-	return ret;
+	return 0;
 }
 
 /**
