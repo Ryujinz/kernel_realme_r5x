@@ -5120,7 +5120,9 @@ static int __wlan_hdd_cfg80211_disable_dfs_chan_scan(struct wiphy *wiphy,
 	int ret_val;
 	uint32_t no_dfs_flag = 0;
 
+#ifdef WLAN_DEBUG
 	hdd_enter_dev(dev);
+#endif
 
 	ret_val = wlan_hdd_validate_context(hdd_ctx);
 	if (ret_val)
@@ -21862,18 +21864,18 @@ int wlan_hdd_disconnect(struct hdd_adapter *adapter, u16 reason,
  */
 static void hdd_print_netdev_txq_status(struct net_device *dev)
 {
+#ifdef WLAN_DEBUG
 	unsigned int i;
 
 	if (!dev)
 		return;
 
 	for (i = 0; i < dev->num_tx_queues; i++) {
-#ifdef WLAN_DEBUG
 		struct netdev_queue *txq = netdev_get_tx_queue(dev, i);
-#endif
 
 		hdd_debug("netdev tx queue[%u] state: 0x%lx", i, txq->state);
 	}
+#endif
 }
 
 /**
@@ -21977,10 +21979,11 @@ static int __wlan_hdd_cfg80211_disconnect(struct wiphy *wiphy,
 		if (vdev)
 			hdd_objmgr_put_vdev(vdev);
 
-		hdd_nofl_info("%s(vdevid-%d): Received Disconnect reason:%d %s",
-			      dev->name, adapter->session_id, reason,
-			      hdd_ieee80211_reason_code_to_str(reason));
-		status = wlan_hdd_disconnect(adapter, reasonCode, reason);
+#ifdef WLAN_DEBUG
+		hdd_info("Disconnect from userspace; reason:%d (%s)",
+			 reason, hdd_ieee80211_reason_code_to_str(reason));
+#endif
+		status = wlan_hdd_disconnect(adapter, reasonCode);
 		if (0 != status) {
 			hdd_err("wlan_hdd_disconnect failed, status: %d", status);
 			hdd_set_disconnect_status(adapter, false);

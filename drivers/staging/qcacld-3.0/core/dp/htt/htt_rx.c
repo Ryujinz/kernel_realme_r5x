@@ -3253,6 +3253,7 @@ void htt_deregister_rx_pkt_dump_callback(struct htt_pdev_t *pdev)
 	}
 	pdev->rx_pkt_dump_cb = NULL;
 }
+#endif
 
 static QDF_STATUS htt_rx_hash_smmu_map(bool map, struct htt_pdev_t *pdev)
 {
@@ -3313,6 +3314,7 @@ QDF_STATUS htt_rx_update_smmu_map(struct htt_pdev_t *pdev, bool map)
 
 	return status;
 }
+<<<<<<< HEAD
 #endif
 
 #ifdef WLAN_FEATURE_TSF_PLUS
@@ -3321,3 +3323,5 @@ void htt_rx_enable_ppdu_end(int *enable_ppdu_end)
 	*enable_ppdu_end = 1;
 }
 #endif
+=======
+>>>>>>> 930b121a3c2c (qcacld-3.0: Nuke as much debug bloat as possible)
