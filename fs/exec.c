@@ -77,10 +77,11 @@ int suid_dumpable = 0;
 static LIST_HEAD(formats);
 static DEFINE_RWLOCK(binfmt_lock);
 
-#define ZYGOTE32_BIN	"/system/bin/app_process32"
-#define ZYGOTE64_BIN	"/system/bin/app_process64"
-static atomic_t zygote32_pid;
-static atomic_t zygote64_pid;
+#define HWCOMPOSER_BIN_PREFIX "/vendor/bin/hw/android.hardware.graphics.composer"
+#define ZYGOTE32_BIN "/system/bin/app_process32"
+#define ZYGOTE64_BIN "/system/bin/app_process64"
+static pid_t zygote32_pid;
+static pid_t zygote64_pid;
 
 bool is_zygote_pid(pid_t pid)
 {
@@ -1831,7 +1832,13 @@ static int do_execveat_common(int fd, struct filename *filename,
 		if (unlikely(!strcmp(filename->name, ZYGOTE32_BIN)))
 			atomic_set(&zygote32_pid, current->pid);
 		else if (unlikely(!strcmp(filename->name, ZYGOTE64_BIN)))
-			atomic_set(&zygote64_pid, current->pid);
+			zygote64_sig = current->signal;
+		else if (unlikely(!strncmp(filename->name,
+					   HWCOMPOSER_BIN_PREFIX,
+					   strlen(HWCOMPOSER_BIN_PREFIX)))) {
+			current->flags |= PF_PERF_CRITICAL;
+			set_cpus_allowed_ptr(current, cpu_perf_mask);
+		}
 	}
 
 	/* execve succeeded */
