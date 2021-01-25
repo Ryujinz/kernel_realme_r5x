@@ -30,7 +30,6 @@
 #include <drm/drm_atomic.h>
 #include <drm/drm_mode.h>
 #include <drm/drm_print.h>
-#include <linux/devfreq_boost.h>
 #include <linux/pm_qos.h>
 #include <linux/sync_file.h>
 #include <linux/cpu_input_boost.h>
@@ -2388,15 +2387,11 @@ int drm_mode_atomic_ioctl(struct drm_device *dev, void *data,
 	 * Optimistically assume the current task won't migrate to another CPU
 	 * and restrict the current CPU to shallow idle states so that it won't
 	 * take too long to finish running the ioctl whenever the ioctl runs a
-	 * command that sleeps, such as for an "atomic" commit. Apply this
-	 * restriction to the prime CPU as well in anticipation of it processing
-	 * the DRM IRQ and any other display commit work, so that it wakes up
-	 * now if it's in a deep idle state.
+	 * command that sleeps, such as for an "atomic" commit.
 	 */
 	struct pm_qos_request req = {
 		.type = PM_QOS_REQ_AFFINE_CORES,
-		.cpus_affine = ATOMIC_INIT(BIT(raw_smp_processor_id()) |
-					   *cpumask_bits(cpu_perf_mask))
+		.cpus_affine = ATOMIC_INIT(BIT(raw_smp_processor_id()))
 	};
 	int ret;
 
