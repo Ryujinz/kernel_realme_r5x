@@ -125,7 +125,7 @@ extern void ohm_schedstats_record(int sched_type, int fg, u64 delta);
  * (default SCHED_TUNABLESCALING_LOG = *(1+ilog(ncpus))
  */
 enum sched_tunable_scaling sysctl_sched_tunable_scaling
-	= SCHED_TUNABLESCALING_NONE;
+	= SCHED_TUNABLESCALING_LINEAR;
 
 /*
  * Minimal preemption granularity for CPU-bound tasks:
