@@ -444,7 +444,7 @@ static void hystart_update(struct sock *sk, u32 delay)
 	}
 }
 
-static void bictcp_acked(struct sock *sk, const struct ack_sample *sample)
+static void cubictcp_acked(struct sock *sk, const struct ack_sample *sample)
 {
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bictcp *ca = inet_csk_ca(sk);
