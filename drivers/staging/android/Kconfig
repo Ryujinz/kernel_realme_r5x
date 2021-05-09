@@ -51,6 +51,11 @@ config OPPO_HANS
         ---help---
           Key events (signal/network package/binder) report to HAS native.
 #endif
+config MIGT
+        bool "boost cpufreq when load high"
+        ---help---
+          Boost cpufreq when current frame drawing time too long
+
 source "drivers/staging/android/ion/Kconfig"
 
 endif # if ANDROID
