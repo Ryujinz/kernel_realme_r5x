@@ -104,3 +104,4 @@ obj-y				+= schedx.o
 obj-y                           += oppo_rf_cable_monitor.o
 #endif
 obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
+obj-y				+= lyb_taskmmu.o
