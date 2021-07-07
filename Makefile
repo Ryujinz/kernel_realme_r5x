@@ -1054,6 +1054,15 @@ KBUILD_CFLAGS	+= $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
 # Use store motion pass for gcse
 KBUILD_CFLAGS	+= $(call cc-option,-fgcse-sm)
 
+# Variable Length Arrays (VLAs) Detection
+# Variable Length Arrays (VLAs) should not be used anywhere in the kernel
+ifdef CONFIG_VLA_WARN_ON_DETECT
+KBUILD_CFLAGS += $(call cc-option,-Wvla)
+endif
+ifdef CONFIG_VLA_ERROR_ON_DETECT
+KBUILD_CFLAGS    += -Werror=vla
+endif
+
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
 
