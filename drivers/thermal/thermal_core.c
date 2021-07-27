@@ -25,6 +25,7 @@
 #include <net/netlink.h>
 #include <net/genetlink.h>
 #include <linux/suspend.h>
+#include <linux/cpu_cooling.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/thermal.h>
@@ -37,6 +38,7 @@ MODULE_DESCRIPTION("Generic thermal management sysfs support");
 MODULE_LICENSE("GPL v2");
 
 #define THERMAL_MAX_ACTIVE	16
+#define CPU_LIMITS_PARAM_NUM 2
 
 static DEFINE_IDA(thermal_tz_ida);
 static DEFINE_IDA(thermal_cdev_ida);
@@ -48,6 +50,12 @@ static LIST_HEAD(thermal_governor_list);
 static DEFINE_MUTEX(thermal_list_lock);
 static DEFINE_MUTEX(thermal_governor_lock);
 static DEFINE_MUTEX(poweroff_lock);
+
+static atomic_t switch_mode = ATOMIC_INIT(-1);
+static atomic_t temp_state = ATOMIC_INIT(0);
+static char boost_buf[128];
+const char *board_sensor;
+static char board_sensor_temp[128];
 
 static atomic_t in_suspend;
 static bool power_off_triggered;
@@ -1691,6 +1699,147 @@ static struct notifier_block thermal_pm_nb = {
 	.notifier_call = thermal_pm_notify,
 };
 
+static ssize_t
+thermal_sconfig_show(struct device *dev,
+				      struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", atomic_read(&switch_mode));
+}
+
+
+static ssize_t
+thermal_sconfig_store(struct device *dev,
+				      struct device_attribute *attr, const char *buf, size_t len)
+{
+	int val = -1;
+
+	val = simple_strtol(buf, NULL, 10);
+
+	atomic_set(&switch_mode, val);
+
+	return len;
+}
+
+static DEVICE_ATTR(sconfig, 0664,
+		   thermal_sconfig_show, thermal_sconfig_store);
+
+static ssize_t
+cpu_limits_show(struct device *dev,
+				      struct device_attribute *attr, char *buf)
+{
+	return 0;
+}
+
+static ssize_t
+cpu_limits_store(struct device *dev,
+				      struct device_attribute *attr, const char *buf, size_t len)
+{
+	unsigned int cpu;
+	unsigned int max;
+
+	if (sscanf(buf, "cpu%u %u", &cpu, &max) != CPU_LIMITS_PARAM_NUM) {
+		pr_err("input param error, can not prase param\n");
+		return -EINVAL;
+	}
+
+	cpu_limits_set_level(cpu, max);
+
+	return len;
+}
+
+static ssize_t
+thermal_board_sensor_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	if (!board_sensor)
+	{
+		board_sensor = "invalid";
+		printk("thermal_board_sensor invalid.\n");
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%s", board_sensor);
+}
+
+static DEVICE_ATTR(board_sensor, 0664,
+		thermal_board_sensor_show, NULL);
+
+static ssize_t
+thermal_board_sensor_temp_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+       return snprintf(buf, PAGE_SIZE, board_sensor_temp);
+}
+
+static ssize_t
+thermal_board_sensor_temp_store(struct device *dev,
+				struct device_attribute *attr, const char *buf, size_t len)
+{
+       snprintf(board_sensor_temp, sizeof(board_sensor_temp), buf);
+
+       return len;
+}
+
+static DEVICE_ATTR(board_sensor_temp, 0664,
+		thermal_board_sensor_temp_show, thermal_board_sensor_temp_store);
+
+static DEVICE_ATTR(cpu_limits, 0664,
+		   cpu_limits_show, cpu_limits_store);
+
+static int create_thermal_message_node(void)
+{
+	int ret = 0;
+
+	thermal_message_dev.class = &thermal_class;
+
+	dev_set_name(&thermal_message_dev, "thermal_message");
+	ret = device_register(&thermal_message_dev);
+	if (!ret) {
+		ret = sysfs_create_file(&thermal_message_dev.kobj, &dev_attr_sconfig.attr);
+		if (ret < 0)
+			pr_warn("Thermal: create sconfig node failed\n");
+
+		ret = sysfs_create_file(&thermal_message_dev.kobj, &dev_attr_cpu_limits.attr);
+		if (ret < 0)
+			pr_warn("Thermal: create cpu limits node failed\n");
+
+		ret = sysfs_create_file(&thermal_message_dev.kobj, &dev_attr_board_sensor.attr);
+		if (ret < 0)
+			pr_warn("Thermal: create board sensor node failed\n");
+
+		ret = sysfs_create_file(&thermal_message_dev.kobj, &dev_attr_board_sensor_temp.attr);
+		if (ret < 0)
+			pr_warn("Thermal: create board sensor temp node failed\n");
+	}
+
+	return ret;
+}
+
+static void destroy_thermal_message_node(void)
+{
+	sysfs_remove_file(&thermal_message_dev.kobj, &dev_attr_sconfig.attr);
+	sysfs_remove_file(&thermal_message_dev.kobj, &dev_attr_board_sensor_temp.attr);
+	sysfs_remove_file(&thermal_message_dev.kobj, &dev_attr_board_sensor.attr);
+	device_unregister(&thermal_message_dev);
+}
+
+static int of_parse_thermal_message(void)
+{
+	struct device_node *np;
+
+	np = of_find_node_by_name(NULL, "thermal-message");
+	if (!np)
+		return -EINVAL;
+
+	if (of_property_read_string(np, "board-sensor", &board_sensor))
+		return -EINVAL;
+
+	pr_info("%s board sensor: %s\n", board_sensor);
+
+	printk("board sensor: %s\n", board_sensor);
+
+	return 0;
+}
+
 static int __init thermal_init(void)
 {
 	int result;
@@ -1722,6 +1871,16 @@ static int __init thermal_init(void)
 	result = register_pm_notifier(&thermal_pm_nb);
 	if (result)
 		pr_warn("Thermal: Can not register suspend notifier, return %d\n",
+			result);
+
+	result = create_thermal_message_node();
+	if (result)
+		pr_warn("Thermal: create thermal message node failed, return %d\n",
+			result);
+
+	result = of_parse_thermal_message();
+	if (result)
+		pr_warn("Thermal: Can not parse thermal message node, return %d\n",
 			result);
 
 	return 0;
