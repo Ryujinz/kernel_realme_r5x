@@ -1004,8 +1004,17 @@ schedtune_init_boost_kthread()
 static int
 schedtune_boostgroup_init(struct schedtune *st)
 {
-	struct boost_groups *bg;
-	int cpu;
+	static struct st_data st_targets[] = {
+		{ "audio-app",	0, 0},
+		{ "background",	0, 0},
+		{ "foreground",	1, 1},
+		{ "rt",		0, 0},
+		{ "top-app",	5, 1},
+	};
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(st_targets); i++) {
+		struct st_data tgt = st_targets[i];
 
 	/* Keep track of allocated boost groups */
 	allocated_group[st->idx] = st;
