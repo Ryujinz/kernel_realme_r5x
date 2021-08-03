@@ -84,70 +84,10 @@ struct step_chg_info {
 static struct step_chg_info *the_chip;
 
 #define STEP_CHG_HYSTERISIS_DELAY_US		500000 /* 0.5 secs */
-
-/*
- * Step Charging Configuration
- * Update the table based on the battery profile
- * Supports VBATT and SOC based source
- * range data must be in increasing ranges and shouldn't overlap
- */
-static struct step_chg_cfg step_chg_config = {
-	.psy_prop	= POWER_SUPPLY_PROP_VOLTAGE_NOW,
-	.prop_name	= "VBATT",
-	.hysteresis	= 100000, /* 100mV */
-	.fcc_cfg	= {
-		/* VBAT_LOW	VBAT_HIGH	FCC */
-		{3600000,	4400000,	5000000},
-		{4001000,	4400000,	5000000},
-		{4201000,	4400000,	5000000},
-	},
-	/*
-	 *	SOC STEP-CHG configuration example.
-	 *
-	 *	.psy_prop = POWER_SUPPLY_PROP_CAPACITY,
-	 *	.prop_name = "SOC",
-	 *	.fcc_cfg	= {
-	 *		//SOC_LOW	SOC_HIGH	FCC
-	 *		{20,		70,		3000000},
-	 *		{70,		90,		2750000},
-	 *		{90,		100,		2500000},
-	 *	},
-	 */
-};
-
-/*
- * Jeita Charging Configuration
- * Update the table based on the battery profile
- * Please ensure that the TEMP ranges are programmed in the hw so that
- * an interrupt is issued and a consequent psy changed will cause us to
- * react immediately.
- * range data must be in increasing ranges and shouldn't overlap.
- * Gaps are okay
- */
-static struct jeita_fcc_cfg jeita_fcc_config = {
-	.psy_prop	= POWER_SUPPLY_PROP_TEMP,
-	.prop_name	= "BATT_TEMP",
-	.hysteresis	= 10, /* 1degC hysteresis */
-	.fcc_cfg	= {
-		/* TEMP_LOW	TEMP_HIGH	FCC */
-		{0,		100,		5000000},
-		{101,		200,		5000000},
-		{201,		450,		5000000},
-		{451,		550,		5000000},
-	},
-};
-
-static struct jeita_fv_cfg jeita_fv_config = {
-	.psy_prop	= POWER_SUPPLY_PROP_TEMP,
-	.prop_name	= "BATT_TEMP",
-	.hysteresis	= 10, /* 1degC hysteresis */
-	.fv_cfg		= {
-		/* TEMP_LOW	TEMP_HIGH	FCC */
-		{0,		100,		6200000},
-		{101,		450,		6200000},
-		{451,		550,		6200000},
-	},
-};
+#define BATT_HOT_DECIDEGREE_MAX			600
+#define GET_CONFIG_DELAY_MS		2000
+#define GET_CONFIG_RETRY_COUNT		50
+#define WAIT_BATT_ID_READY_MS		200
 
 static bool is_batt_available(struct step_chg_info *chip)
 {
