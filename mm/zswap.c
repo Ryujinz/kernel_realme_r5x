@@ -199,6 +199,16 @@ static bool zswap_has_pool;
 static int zswap_pool_get(struct zswap_pool *pool);
 static void zswap_pool_put(struct zswap_pool *pool);
 
+static const struct zpool_ops zswap_zpool_ops = {
+	.evict = zswap_writeback_entry
+};
+
+static bool zswap_is_full(void)
+{
+	return totalram_pages() * zswap_max_pool_percent / 100 <
+			DIV_ROUND_UP(zswap_pool_total_size, PAGE_SIZE);
+}
+
 static void zswap_update_total_size(void)
 {
 	struct zswap_pool *pool;
