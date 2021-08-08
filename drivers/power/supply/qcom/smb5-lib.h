@@ -106,9 +106,9 @@ enum print_reason {
 #ifndef CONFIG_PRODUCT_REALME_TRINKET
 // wenbin.liu@BSP.CHG.Basic, 2017/11/27 
 // Delete for oppo dcp 2A 
-#define DCP_CURRENT_UA                  1500000
-#else
 #define DCP_CURRENT_UA                  2000000
+#else
+#define DCP_CURRENT_UA                  2100000
 #endif
 
 #define HVDCP_CURRENT_UA		3000000
