@@ -11246,6 +11246,18 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	init_waitqueue_head(&hba->tm_tag_wq);
 
 	/* Initialize work queues */
+	snprintf(recovery_wq_name, ARRAY_SIZE(recovery_wq_name), "%s_%d",
+				"ufs_recovery_wq", host->host_no);
+	hba->recovery_wq = alloc_workqueue("%s",
+			WQ_MEM_RECLAIM|WQ_UNBOUND|WQ_HIGHPRI, 1,
+			recovery_wq_name);
+	if (!hba->recovery_wq) {
+		dev_err(hba->dev, "%s: failed to create the workqueue\n",
+				__func__);
+		err = -ENOMEM;
+		goto out_disable;
+	}
+
 	INIT_WORK(&hba->eh_work, ufshcd_err_handler);
 	INIT_WORK(&hba->eeh_work, ufshcd_exception_event_handler);
 	INIT_WORK(&hba->card_detect_work, ufshcd_card_detect_handler);
