@@ -3305,7 +3305,7 @@ irqreturn_t smblib_handle_usb_psy_changed(int irq, void *data)
  * PARALLEL PSY GETTERS *
  ************************/
 
-#ifdef CONFIG_MACH_ASUS_SDM660
+#ifdef CONFIG_MACH_REALME_TRINKET
 #define ICL_475mA	0x12
 #define ICL_500mA	0x13
 #define ICL_950mA	0x26
@@ -3317,7 +3317,7 @@ irqreturn_t smblib_handle_usb_psy_changed(int irq, void *data)
 #define ICL_2850mA	0x72
 #define ICL_3000mA	0x78
 #define ICL_4000mA	0xF8
-#define ASUS_MONITOR_CYCLE	60000
+#define REALME_MONITOR_CYCLE	60000
 #define TITAN_750K_MIN	675
 #define TITAN_750K_MAX	851
 #define TITAN_200K_MIN	306
@@ -3326,10 +3326,10 @@ irqreturn_t smblib_handle_usb_psy_changed(int irq, void *data)
 #define VADC_THD_900MV	900
 #define VADC_THD_1000MV	1000
 
-void smblib_asus_monitor_start(struct smb_charger *chg, int time)
+void smblib_realme_monitor_start(struct smb_charger *chg, int time)
 {
-	cancel_delayed_work(&chg->asus_min_monitor_work);
-	schedule_delayed_work(&chg->asus_min_monitor_work,
+	cancel_delayed_work(&chg->realme_min_monitor_work);
+	schedule_delayed_work(&chg->realme_min_monitor_work,
 				msecs_to_jiffies(time));
 }
 
@@ -3351,15 +3351,15 @@ void smblib_asus_monitor_start(struct smb_charger *chg, int time)
 #define SMBCHG_FAST_CHG_CURRENT_VALUE_2050MA 	0x52
 #define SMBCHG_FAST_CHG_CURRENT_VALUE_4000MA 	0xF8
 
-#ifdef CONFIG_MACH_ASUS_X01BD
-#define ASUS_CUSTOM_JEITA_SET_MODIFY
+#ifdef CONFIG_MACH_REALME_TRINKET
+#define REALME_CUSTOM_JEITA_SET_MODIFY
 #endif
 
 enum JEITA_state {
 	JEITA_STATE_INITIAL,
 	JEITA_STATE_LESS_THAN_0,
 	JEITA_STATE_RANGE_0_to_100,
-#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+#ifdef REALME_CUSTOM_JEITA_SET_MODIFY
 	JEITA_STATE_RANGE_100_to_450,
 	JEITA_STATE_RANGE_450_to_550,
 	JEITA_STATE_LARGER_THAN_550,
@@ -3385,7 +3385,7 @@ static int SW_recharge(struct smb_charger *chg)
 	if ((termination_reg & BATTERY_CHARGER_STATUS_MASK) == 0x05)
 		termination_done = 1;
 
-	capacity = asus_get_prop_batt_capacity(smbchg_dev);
+	capacity = realme_get_prop_batt_capacity(smbchg_dev);
 
 	pr_debug("%s: bat_capacity = %d, termination_reg = 0x%x\n", __func__,
 			capacity, termination_reg);
@@ -3431,7 +3431,7 @@ int smbchg_jeita_judge_state(int old_State, int batt_tempr)
 	/* 0 <= batt_tempr < 10 */
 	} else if (batt_tempr < 100) {
 		result_State = JEITA_STATE_RANGE_0_to_100;
-#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+#ifdef REALME_CUSTOM_JEITA_SET_MODIFY
 	/* 10 <= batt_tempr < 45 */
 	} else if (batt_tempr < 550) {
 		result_State = JEITA_STATE_RANGE_100_to_450;
@@ -3460,7 +3460,7 @@ int smbchg_jeita_judge_state(int old_State, int batt_tempr)
 			result_State = old_State;
 	}
 
-#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+#ifdef REALME_CUSTOM_JEITA_SET_MODIFY
 	else if (old_State == JEITA_STATE_RANGE_0_to_100 &&
 		result_State == JEITA_STATE_RANGE_100_to_450) {
 		if (batt_tempr <= 130)
@@ -3532,7 +3532,7 @@ static int jeita_status_regs_write(u8 chg_en, u8 FV_CFG, u8 FCC)
 			__func__);
 
 	pr_debug("jeita_status_regs_write  ICL = 0x%x\n", ICL_reg);
-	asus_smblib_rerun_aicl(smbchg_dev);
+	realme_smblib_rerun_aicl(smbchg_dev);
 
 	/* reg1370, usbin_limit */
 	rc = smblib_read(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG, &ICL_reg);
@@ -3545,7 +3545,7 @@ static int jeita_status_regs_write(u8 chg_en, u8 FV_CFG, u8 FCC)
 	return 0;
 }
 
-void asus_update_usb_connector_state(struct smb_charger *chip)
+void realme_update_usb_connector_state(struct smb_charger *chip)
 {
 	int64_t  phy_volta = 0;
 	struct qpnp_vadc_result usb_vadc_result;
@@ -3621,18 +3621,18 @@ void jeita_rule(void)
 	pr_debug("jeita_rule Read fast CC=0x%x,USBIN_ICL_reg=0x%x\n", FCC_reg,
 			USBIN_ICL_reg);
 
-	bat_health = asus_get_batt_health();
+	bat_health = realme_get_batt_health();
 	pr_debug("jeita_rule  bat_health=%d\n", bat_health);
 
-	bat_temp = asus_get_prop_batt_temp(smbchg_dev);
+	bat_temp = realme_get_prop_batt_temp(smbchg_dev);
 	if (bat_temp >= START_REPORT_BAT_TEMPRATURE) {
 		power_supply_changed(smbchg_dev->batt_psy);
 		pr_debug("[%s]line=%d: bat_temp=%d\n", __func__, __LINE__,
 				bat_temp);
 	}
 
-	bat_volt = asus_get_prop_batt_volt(smbchg_dev);
-	bat_capacity = asus_get_prop_batt_capacity(smbchg_dev);
+	bat_volt = realme_get_prop_batt_volt(smbchg_dev);
+	bat_capacity = realme_get_prop_batt_capacity(smbchg_dev);
 	state = smbchg_jeita_judge_state(state, bat_temp);
 	pr_debug("%s: state=%d,batt_health = %s, bat_temp = %d, bat_volt = %d, bat_capacity=%d,ICL = 0x%x, FV_reg=0x%x\n",
 		__func__,state, health_type[bat_health], bat_temp, bat_volt,
@@ -3656,7 +3656,7 @@ void jeita_rule(void)
 
 		break;
 
-#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+#ifdef REALME_CUSTOM_JEITA_SET_MODIFY
 	case JEITA_STATE_RANGE_100_to_450:
 #else
 	case JEITA_STATE_RANGE_100_to_500:
@@ -3671,7 +3671,7 @@ void jeita_rule(void)
 
 		break;
 
-#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+#ifdef REALME_CUSTOM_JEITA_SET_MODIFY
 	case JEITA_STATE_RANGE_450_to_550:
 #else
 	case JEITA_STATE_RANGE_500_to_600:
@@ -3681,7 +3681,7 @@ void jeita_rule(void)
 		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_4000MA;
 		break;
 
-#ifdef ASUS_CUSTOM_JEITA_SET_MODIFY
+#ifdef REALME_CUSTOM_JEITA_SET_MODIFY
 	case JEITA_STATE_LARGER_THAN_550:
 #else
 	case JEITA_STATE_LARGER_THAN_600:
@@ -3708,7 +3708,7 @@ void jeita_rule(void)
 			__func__, rc);
 }
 
-void asus_min_monitor_work(struct work_struct *work)
+void realme_min_monitor_work(struct work_struct *work)
 {
 	int rc;
 
@@ -3718,7 +3718,7 @@ void asus_min_monitor_work(struct work_struct *work)
 		return;
 	}
 
-	if (!asus_get_prop_usb_present(smbchg_dev)) {
+	if (!realme_get_prop_usb_present(smbchg_dev)) {
 		smblib_uusb_removal(smbchg_dev);
 		return;
 	}
@@ -3726,7 +3726,7 @@ void asus_min_monitor_work(struct work_struct *work)
 	jeita_rule();
 
 	if (charger_limit_enable_flag) {
-		if (asus_get_prop_batt_capacity(smbchg_dev) >=
+		if (realme_get_prop_batt_capacity(smbchg_dev) >=
 			charger_limit_value) {
 			pr_debug("%s: charger limit is enable & over, stop charging\n",
 				__func__);
@@ -3743,19 +3743,19 @@ void asus_min_monitor_work(struct work_struct *work)
 			charger_limit_value);
 	}
 
-	asus_update_usb_connector_state(smbchg_dev);
+	realme_update_usb_connector_state(smbchg_dev);
 
-	if (asus_get_prop_usb_present(smbchg_dev)) {
+	if (realme_get_prop_usb_present(smbchg_dev)) {
 		last_jeita_time = current_kernel_time();
-		schedule_delayed_work(&smbchg_dev->asus_min_monitor_work,
-					msecs_to_jiffies(ASUS_MONITOR_CYCLE));
-		schedule_delayed_work(&smbchg_dev->asus_batt_RTC_work, 0);
+		schedule_delayed_work(&smbchg_dev->realme_min_monitor_work,
+					msecs_to_jiffies(REALME_MONITOR_CYCLE));
+		schedule_delayed_work(&smbchg_dev->realme_batt_RTC_work, 0);
 	}
 
-	asus_smblib_relax(smbchg_dev);
+	realme_smblib_relax(smbchg_dev);
 }
 
-void asus_chg_flow_work(struct work_struct *work)
+void realme_chg_flow_work(struct work_struct *work)
 {
 	struct smb_irq_data *irq_data = data;
 	struct smb_charger *chg = irq_data->parent_data;
@@ -3782,8 +3782,8 @@ void asus_chg_flow_work(struct work_struct *work)
 			pr_err("%s: Failed to set USBIN_CURRENT_LIMIT\n",
 				__func__);
 
-		asus_smblib_rerun_aicl(smbchg_dev);
-		smblib_asus_monitor_start(smbchg_dev, 0);
+		realme_smblib_rerun_aicl(smbchg_dev);
+		smblib_realme_monitor_start(smbchg_dev, 0);
 		break;
 
 	case CDP_CHARGER_BIT:
@@ -3802,8 +3802,8 @@ void asus_chg_flow_work(struct work_struct *work)
 			pr_err("%s: Couldn't read fast_CURRENT_LIMIT_CFG_REG\n",
 				__func__);
 
-		asus_smblib_rerun_aicl(smbchg_dev);
-		smblib_asus_monitor_start(smbchg_dev, 0);
+		realme_smblib_rerun_aicl(smbchg_dev);
+		smblib_realme_monitor_start(smbchg_dev, 0);
 		break;
 
 	case OCP_CHARGER_BIT:
@@ -3815,8 +3815,8 @@ void asus_chg_flow_work(struct work_struct *work)
 			pr_err("%s: Failed to set USBIN_CURRENT_LIMIT\n",
 				__func__);
 
-		asus_smblib_rerun_aicl(smbchg_dev);
-		smblib_asus_monitor_start(smbchg_dev, 0);
+		realme_smblib_rerun_aicl(smbchg_dev);
+		smblib_realme_monitor_start(smbchg_dev, 0);
 		break;
 
 	wdata = &chg->irq_info[SWITCH_POWER_OK_IRQ].irq_data->storm_data;
@@ -3863,21 +3863,21 @@ void asus_chg_flow_work(struct work_struct *work)
 	/* vdm1 */
 	} else {
 		if (adc_result >= VADC_THD_900MV)
-			ASUS_ADAPTER_ID = PB;
+			REALME_ADAPTER_ID = PB;
 		else
-			ASUS_ADAPTER_ID = OTHERS;
+			REALME_ADAPTER_ID = OTHERS;
 	}
 
-	pr_debug("CHG_TYPE_judge  ASUS_ADAPTER_ID=%d\n", ASUS_ADAPTER_ID);
+	pr_debug("CHG_TYPE_judge  REALME_ADAPTER_ID=%d\n", REALME_ADAPTER_ID);
 }
 
-void asus_adapter_adc_work(struct work_struct *work)
+void realme_adapter_adc_work(struct work_struct *work)
 {
 	int rc;
 	u8 usb_max_current;
 	u8 USBIN_CURRENT_LIMIT_reg;
 
-	if (!asus_get_prop_usb_present(smbchg_dev)) {
+	if (!realme_get_prop_usb_present(smbchg_dev)) {
 		smblib_uusb_removal(smbchg_dev);
 		return;
 	}
@@ -3894,12 +3894,12 @@ void asus_adapter_adc_work(struct work_struct *work)
 	CHG_TYPE_judge(smbchg_dev);
 
 	/* determine current-setting value for DCP type AC: */
-	switch (ASUS_ADAPTER_ID) {
-	case ASUS_750K:
+	switch (REALME_ADAPTER_ID) {
+	case REALME_750K:
 		usb_max_current = ICL_4000mA;
 		break;
 
-	case ASUS_200K:
+	case REALME_200K:
 		usb_max_current = ICL_4000mA;
 		break;
 
@@ -3934,8 +3934,8 @@ void asus_adapter_adc_work(struct work_struct *work)
 	else
 		pr_debug("%s: Pull low USBSW_S\n", __func__);
 
-	pr_debug("%s: ASUS_ADAPTER_ID = %s, setting mA = 0x%x\n", __func__,
-			asus_id[ASUS_ADAPTER_ID], usb_max_current);
+	pr_debug("%s: REALME_ADAPTER_ID = %s, setting mA = 0x%x\n", __func__,
+			realme_id[REALME_ADAPTER_ID], usb_max_current);
 
 	/* Set current:
 	 * reg=1370, bit7-bit0=
@@ -3945,11 +3945,11 @@ void asus_adapter_adc_work(struct work_struct *work)
 	if (rc < 0)
 		pr_err("%s: Failed to set USBIN_CURRENT_LIMIT\n", __func__);
 
-	asus_smblib_rerun_aicl(smbchg_dev);
-	smblib_asus_monitor_start(smbchg_dev, 0);
+	realme_smblib_rerun_aicl(smbchg_dev);
+	smblib_realme_monitor_start(smbchg_dev, 0);
 }
 
-void asus_insertion_initial_settings(struct smb_charger *chg)
+void realme_insertion_initial_settings(struct smb_charger *chg)
 {
 	int rc;
 	u8 USBIN_cc;
