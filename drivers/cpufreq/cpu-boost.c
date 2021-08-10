@@ -360,8 +360,11 @@ static int cpu_boost_init(void)
 		cpumask_set_cpu(i, &sys_bg_mask);
 	}
 
-	cpu_boost_wq = alloc_workqueue("cpuboost_wq", WQ_HIGHPRI, 1);
-	if (!cpu_boost_wq)
+	kthread_init_worker(&cpu_boost_worker);
+	cpu_boost_worker_thread = kthread_create(kthread_worker_fn,
+		&cpu_boost_worker, "cpu_boost_worker_thread");
+	if (IS_ERR(cpu_boost_worker_thread)) {
+		pr_err("cpu-boost: Failed to init kworker!\n");
 		return -EFAULT;
 	}
 
