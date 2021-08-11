@@ -249,12 +249,32 @@ static void do_idle(void)
 		check_pgt_cache();
 		rmb();
 
-		local_irq_disable();
+			if (unlikely(cpu_is_offline(cpu))) {
+				rcu_cpu_notify(NULL, CPU_DYING_IDLE,
+					       (void *)(long)cpu);
+				smp_mb(); /* all activity before dead. */
+				this_cpu_write(cpu_dead_idle, true);
+				arch_cpu_idle_dead();
+			}
 
-		if (cpu_is_offline(cpu)) {
-			tick_nohz_idle_stop_tick();
-			cpuhp_report_idle_dead();
-			arch_cpu_idle_dead();
+			local_irq_disable();
+			arch_cpu_idle_enter();
+
+			/*
+			 * In poll mode we reenable interrupts and spin.
+			 *
+			 * Also if we detected in the wakeup from idle
+			 * path that the tick broadcast device expired
+			 * for us, we don't want to go deep idle as we
+			 * know that the IPI is going to arrive right
+			 * away
+			 */
+			if (unlikely(cpu_idle_force_poll || tick_check_broadcast_expired()))
+				cpu_idle_poll();
+			else
+				cpuidle_idle_call();
+
+			arch_cpu_idle_exit();
 		}
 
 		arch_cpu_idle_enter();
