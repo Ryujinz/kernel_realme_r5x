@@ -753,3 +753,8 @@ CONFIG_PRODUCT_REALME_TRINKET=y
 # Compile-time checks and compiler options
 #
 CONFIG_OPTIMIZE_INLINING=y
+
+#
+# Library routines
+#
+CONFIG_GENERIC_FIND_FIRST_BIT=y
