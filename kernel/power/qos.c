@@ -266,17 +266,15 @@ static const struct file_operations pm_qos_debug_fops = {
 	.release        = single_release,
 };
 
-static inline int pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
-					    unsigned long *cpus)
+static inline void pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
+		struct cpumask *cpus)
 {
 	struct pm_qos_request *req = NULL;
 	int cpu;
 	s32 qos_val[NR_CPUS] = { [0 ... (NR_CPUS - 1)] = c->default_value };
 
 	plist_for_each_entry(req, &c->list, node) {
-		unsigned long affined_cpus = atomic_read(&req->cpus_affine);
-
-		for_each_cpu(cpu, to_cpumask(&affined_cpus)) {
+		for_each_cpu(cpu, &req->cpus_affine) {
 			switch (c->type) {
 			case PM_QOS_MIN:
 				if (qos_val[cpu] > req->node.prio)
@@ -297,7 +295,7 @@ static inline int pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
 
 	for_each_possible_cpu(cpu) {
 		if (c->target_per_cpu[cpu] != qos_val[cpu])
-			*cpus |= BIT(cpu);
+			cpumask_set_cpu(cpu, cpus);
 		c->target_per_cpu[cpu] = qos_val[cpu];
 	}
 }
@@ -313,7 +311,7 @@ static inline int pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
  * This function returns 1 if the aggregated constraint value has changed, 0
  *  otherwise.
  */
-int __always_inline pm_qos_update_target(struct pm_qos_constraints *c, struct plist_node *node,
+int pm_qos_update_target(struct pm_qos_constraints *c, struct plist_node *node,
 			 enum pm_qos_req_action action, int value)
 {
 	int prev_value, curr_value, new_value;
@@ -493,7 +491,7 @@ int pm_qos_request_for_cpumask(int pm_qos_class, struct cpumask *mask)
 }
 EXPORT_SYMBOL(pm_qos_request_for_cpumask);
 
-static __always_inline void __pm_qos_update_request(struct pm_qos_request *req,
+static void __pm_qos_update_request(struct pm_qos_request *req,
 			   s32 new_value)
 {
 	trace_pm_qos_update_request(req->pm_qos_class, new_value);
@@ -657,7 +655,7 @@ EXPORT_SYMBOL_GPL(pm_qos_add_request);
  *
  * Attempts are made to make this code callable on hot code paths.
  */
-void __always_inline pm_qos_update_request(struct pm_qos_request *req,
+void pm_qos_update_request(struct pm_qos_request *req,
 			   s32 new_value)
 {
 	if (!req) /*guard against callers passing in null */
