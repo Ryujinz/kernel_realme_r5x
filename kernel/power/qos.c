@@ -266,38 +266,17 @@ static const struct file_operations pm_qos_debug_fops = {
 	.release        = single_release,
 };
 
-static inline void pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
-		struct cpumask *cpus)
+static inline int pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
+					    unsigned long *cpus)
 {
-	s32 qos_val[NR_CPUS] = {
-		[0 ... (NR_CPUS - 1)] = PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE
-	};
-	struct pm_qos_request *req;
-	unsigned long new_req_cpus;
-	bool changed = false;
+	struct pm_qos_request *req = NULL;
 	int cpu;
-
-	/*
-	 * pm_qos_constraints can be from different classes,
-	 * Update cpumask only only for CPU_DMA_LATENCY classes
-	 */
-
-	if (c != pm_qos_array[PM_QOS_CPU_DMA_LATENCY]->constraints)
-		return -EINVAL;
-
-	new_req_cpus = atomic_read(&new_req->cpus_affine);
-	for_each_cpu(cpu, to_cpumask(&new_req_cpus)) {
-		if (c->target_per_cpu[cpu] != new_req->node.prio) {
-			changed = true;
-			break;
-		}
-	}
-
-	if (!changed)
-		return 0;
+	s32 qos_val[NR_CPUS] = { [0 ... (NR_CPUS - 1)] = c->default_value };
 
 	plist_for_each_entry(req, &c->list, node) {
-		for_each_cpu(cpu, &req->cpus_affine) {
+		unsigned long affined_cpus = atomic_read(&req->cpus_affine);
+
+		for_each_cpu(cpu, to_cpumask(&affined_cpus)) {
 			switch (c->type) {
 			case PM_QOS_MIN:
 				if (qos_val[cpu] > req->node.prio)
@@ -318,7 +297,7 @@ static inline void pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
 
 	for_each_possible_cpu(cpu) {
 		if (c->target_per_cpu[cpu] != qos_val[cpu])
-			cpumask_set_cpu(cpu, cpus);
+			*cpus |= BIT(cpu);
 		c->target_per_cpu[cpu] = qos_val[cpu];
 	}
 }
@@ -337,7 +316,6 @@ static inline void pm_qos_set_value_for_cpus(struct pm_qos_constraints *c,
 int __always_inline pm_qos_update_target(struct pm_qos_constraints *c, struct plist_node *node,
 			 enum pm_qos_req_action action, int value)
 {
-	struct pm_qos_request *req = container_of(node, typeof(*req), node);
 	int prev_value, curr_value, new_value;
 	struct cpumask cpus;
 	int ret;
@@ -372,7 +350,7 @@ int __always_inline pm_qos_update_target(struct pm_qos_constraints *c, struct pl
 	curr_value = pm_qos_get_value(c);
 	cpumask_clear(&cpus);
 	pm_qos_set_value(c, curr_value);
-	ret = pm_qos_set_value_for_cpus(req, c, &cpus);
+	pm_qos_set_value_for_cpus(c, &cpus);
 
 	spin_unlock(&pm_qos_lock);
 
