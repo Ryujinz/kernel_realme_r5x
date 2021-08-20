@@ -33,29 +33,55 @@
 #include <linux/slab.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
-#include "compat_ion.h"
-#include "ion_priv.h"
+#include <linux/vmalloc.h>
+#include <linux/debugfs.h>
+#include <linux/dma-buf.h>
+#include <linux/idr.h>
+#include <linux/sched/task.h>
+#include <linux/bitops.h>
+#include <linux/msm_dma_iommu_mapping.h>
+#define CREATE_TRACE_POINTS
+#include <trace/events/ion.h>
+#include <soc/qcom/secure_buffer.h>
 
-struct ion_device {
-	struct miscdevice dev;
-	struct plist_head heaps;
-	long (*custom_ioctl)(struct ion_client *client, unsigned int cmd,
-			     unsigned long arg);
-};
+#if defined(CONFIG_PRODUCT_REALME_TRINKET) && defined(CONFIG_OPPO_HEALTHINFO) && defined (CONFIG_OPPO_MEM_MONITOR)
+//Jiheng.Xie@TECH.BSP.Performance, 2019/07/11, add for ion wait monitor
+#include <linux/memory_monitor.h>
+#endif /*CONFIG_PRODUCT_REALME_TRINKET*/
 
-struct ion_client {
-	struct ion_device *idev;
-	struct idr handle_idr;
-	struct latch_tree_root handle_root;
-	spinlock_t idr_lock;
-	spinlock_t rb_lock;
-};
+#ifdef CONFIG_PRODUCT_REALME_TRINKET
+// wenbin.liu@PSW.BSP.MM, 2018/07/11
+// Add for ion used cnt
+#include <linux/module.h>
+#endif /*CONFIG_PRODUCT_REALME_TRINKET*/
 
-struct buffer_map {
-	struct sg_table table;
-	struct list_head list;
-	struct device *dev;
-};
+#include "ion.h"
+#include "ion_secure_util.h"
+
+static struct ion_device *internal_dev;
+
+int ion_walk_heaps(int heap_id, enum ion_heap_type type, void *data,
+		   int (*f)(struct ion_heap *heap, void *data))
+{
+	int ret_val = 0;
+	struct ion_heap *heap;
+	struct ion_device *dev = internal_dev;
+	/*
+	 * traverse the list of heaps available in this system
+	 * and find the heap that is specified.
+	 */
+	down_write(&dev->lock);
+	plist_for_each_entry(heap, &dev->heaps, node) {
+		if (ION_HEAP(heap->id) != heap_id ||
+		    type != heap->type)
+			continue;
+		ret_val = f(heap, data);
+		break;
+	}
+	up_write(&dev->lock);
+	return ret_val;
+}
+EXPORT_SYMBOL(ion_walk_heaps);
 
 bool ion_buffer_cached(struct ion_buffer *buffer)
 {
@@ -301,13 +327,10 @@ static int ion_dma_buf_attach(struct dma_buf *dmabuf, struct device *dev,
 	if (!a)
 		return -ENOMEM;
 
-	plist_for_each_entry(heap, &idev->heaps, node) {
-		if (BIT(heap->id) & heap_id_mask) {
-			buffer = ion_buffer_create(heap, len, align, flags);
-			if (!IS_ERR(buffer)) {
-				return buffer;
-			}
-		}
+	table = dup_sg_table(buffer->sg_table);
+	if (IS_ERR(table)) {
+		kfree(a);
+		return -ENOMEM;
 	}
 
 	a->table = table;
@@ -1223,7 +1246,7 @@ static const struct file_operations ion_fops = {
 #endif
 };
 
-void ion_add_heap(struct ion_device *idev, struct ion_heap *heap)
+static int debug_shrink_set(void *data, u64 val)
 {
 	struct ion_heap *heap = data;
 	struct shrink_control sc;
@@ -1241,8 +1264,18 @@ void ion_add_heap(struct ion_device *idev, struct ion_heap *heap)
 	return 0;
 }
 
-	plist_node_init(&heap->node, -heap->id);
-	plist_add(&heap->node, &idev->heaps);
+static int debug_shrink_get(void *data, u64 *val)
+{
+	struct ion_heap *heap = data;
+	struct shrink_control sc;
+	int objs;
+
+	sc.gfp_mask = GFP_HIGHUSER;
+	sc.nr_to_scan = 0;
+
+	objs = heap->shrinker.count_objects(&heap->shrinker, &sc);
+	*val = objs;
+	return 0;
 }
 
 DEFINE_SIMPLE_ATTRIBUTE(debug_shrink_fops, debug_shrink_get,
@@ -1252,10 +1285,41 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 {
 	struct dentry *debug_file;
 
-	plist_for_each_entry(heap, &idev->heaps, node) {
-		if (heap->type == type && ION_HEAP(heap->id) == heap_id) {
-			ret = f(heap, data);
-			break;
+	if (!heap->ops->allocate || !heap->ops->free)
+		pr_err("%s: can not add heap with invalid ops struct.\n",
+		       __func__);
+
+	spin_lock_init(&heap->free_lock);
+	heap->free_list_size = 0;
+
+	if (heap->flags & ION_HEAP_FLAG_DEFER_FREE)
+		ion_heap_init_deferred_free(heap);
+
+	if ((heap->flags & ION_HEAP_FLAG_DEFER_FREE) || heap->ops->shrink)
+		ion_heap_init_shrinker(heap);
+
+	heap->dev = dev;
+	down_write(&dev->lock);
+	/*
+	 * use negative heap->id to reverse the priority -- when traversing
+	 * the list later attempt higher id numbers first
+	 */
+	plist_node_init(&heap->node, -heap->id);
+	plist_add(&heap->node, &dev->heaps);
+
+	if (heap->shrinker.count_objects && heap->shrinker.scan_objects) {
+		char debug_name[64];
+
+		snprintf(debug_name, 64, "%s_shrink", heap->name);
+		debug_file = debugfs_create_file(
+			debug_name, 0644, dev->debug_root, heap,
+			&debug_shrink_fops);
+		if (!debug_file) {
+			char buf[256], *path;
+
+			path = dentry_path(dev->debug_root, buf, 256);
+			pr_err("Failed to create heap shrinker debugfs at %s/%s\n",
+			       path, debug_name);
 		}
 	}
 
@@ -1273,16 +1337,10 @@ struct ion_device *ion_device_create(void)
 	if (!idev)
 		return ERR_PTR(-ENOMEM);
 
-	*idev = (typeof(*idev)){
-		.custom_ioctl = custom_ioctl,
-		.heaps = PLIST_HEAD_INIT(idev->heaps),
-		.dev = {
-			.minor = MISC_DYNAMIC_MINOR,
-			.name = "ion",
-			.fops = &ion_fops
-		},
-	};
-
+	idev->dev.minor = MISC_DYNAMIC_MINOR;
+	idev->dev.name = "ion";
+	idev->dev.fops = &ion_fops;
+	idev->dev.parent = NULL;
 	ret = misc_register(&idev->dev);
 	if (ret) {
 		pr_err("ion: failed to register misc device.\n");
