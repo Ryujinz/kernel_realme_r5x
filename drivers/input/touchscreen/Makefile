@@ -108,9 +108,11 @@ obj-$(CONFIG_TOUCHSCREEN_ROHM_BU21023)	+= rohm_bu21023.o
 obj-$(CONFIG_TOUCHSCREEN_ST)		+= st/
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_CHIPSET)	+= hxchipset/
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_TCM)	+= synaptics_tcm/
-obj-$(CONFIG_TOUCHSCREEN_RAYDIUM_CHIPSET)  += raydium_wt030/
-obj-$(CONFIG_INPUT_PRESS_NDT) += ndt_core.o
-obj-$(CONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI) += nt36672c/
-obj-$(CONFIG_SPI_XIAOMI_TP) += spi-xiaomi-tp.o
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE) += xiaomi/
-obj-$(CONFIG_TOUCHSCREEN_COMMON)	+= tp_common.o
+ifeq ($(CONFIG_ODM_WT_EDIT),y)
+obj-$(CONFIG_TOUCHSCREEN_ILI9881H)	 += ili9881h/
+obj-$(CONFIG_INPUT_TOUCHSCREEN)      += headset_notifier.o
+obj-$(CONFIG_INPUT_TOUCHSCREEN)      += usb_notifier.o
+obj-$(CONFIG_INPUT_TOUCHSCREEN)      += update_tpfw_notifier.o
+obj-$(CONFIG_INPUT_TOUCHSCREEN)      += tpd_summer.o
+obj-$(CONFIG_TOUCHSCREEN_NT36525B)	 += NT36525B/
+endif
