@@ -3728,7 +3728,6 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 
 	default:
 		err = -ENOTTY;
-		pr_info("bad ioctl: %d\n", ioctl_num);
 		break;
 	}
  bail:
