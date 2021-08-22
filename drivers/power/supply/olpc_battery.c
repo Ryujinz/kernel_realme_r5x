@@ -607,7 +607,7 @@ static int olpc_battery_probe(struct platform_device *pdev)
 	 * the latest EC protocol, supported by 0x44 and above.
 	 */
 	if (olpc_platform_info.ecver < 0x44) {
-		printk(KERN_NOTICE "OLPC EC version 0x%02x too old for "
+		pr_debug(KERN_NOTICE "OLPC EC version 0x%02x too old for "
 			"battery driver.\n", olpc_platform_info.ecver);
 		return -ENXIO;
 	}

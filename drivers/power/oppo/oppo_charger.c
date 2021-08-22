@@ -90,11 +90,11 @@ int tbatt_pwroff_enable = 1;
 
 /* wenbin.liu@SW.Bsp.Driver, 2016/03/01  Add for log tag*/
 #define charger_xlog_printk(num, fmt, ...) \
-        do { \
-                if (enable_charger_log >= (int)num) { \
-                        printk(KERN_NOTICE pr_fmt("[OPPO_CHG][%s]"fmt), __func__, ##__VA_ARGS__); \
-                } \
-        } while (0)
+		do { \
+			if (enable_charger_log >= (int)num) { \
+				pr_debug(KERN_NOTICE pr_fmt("[OPPO_CHG][%s]"fmt), __func__, ##__VA_ARGS__); \
+			} \
+		} while (0)
 
 void oppo_chg_turn_off_charging(struct oppo_chg_chip *chip);
 void oppo_chg_turn_on_charging(struct oppo_chg_chip *chip);

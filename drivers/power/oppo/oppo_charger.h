@@ -122,7 +122,7 @@
 #define	NOTIFY_CHARGER_TERMINAL			20
 
 #define chg_debug(fmt, ...) \
-        printk(KERN_NOTICE "[OPPO_CHG][%s]"fmt, __func__, ##__VA_ARGS__)
+        pr_debug(KERN_NOTICE "[OPPO_CHG][%s]"fmt, __func__, ##__VA_ARGS__)
 
 #define chg_err(fmt, ...) \
         printk(KERN_ERR "[OPPO_CHG][%s]"fmt, __func__, ##__VA_ARGS__)
