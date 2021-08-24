@@ -3119,16 +3119,6 @@ static inline unsigned long thermal_cap(int cpu)
 
 static inline void clear_walt_request(int cpu) { }
 
-static inline int is_reserved(int cpu)
-{
-	return 0;
-}
-
-static inline int mark_reserved(int cpu)
-{
-	return 0;
-}
-
 static inline enum sched_boost_policy sched_boost_policy(void)
 {
 	return SCHED_BOOST_NONE;
