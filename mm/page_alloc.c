@@ -4104,8 +4104,6 @@ retry_cpuset:
 			goto got_pg;
 
 		 if (order >= pageblock_order && (gfp_mask & __GFP_IO)) {
-<<<<<<< HEAD
-=======
 			/*
 			 * If allocating entire pageblock(s) and compaction
 			 * failed because all zones are below low watermarks
@@ -4132,7 +4130,6 @@ retry_cpuset:
 		 * includes some THP page fault allocations
 		 */
 		if (costly_order && (gfp_mask & __GFP_NORETRY)) {
->>>>>>> 7f2eed30c706 (mm: Avoid expensive reclaim when compaction may not succeed)
 			/*
 			 * If allocating entire pageblock(s) and compaction
 			 * failed because all zones are below low watermarks
