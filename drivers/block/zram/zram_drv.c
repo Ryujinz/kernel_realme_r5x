@@ -1023,7 +1023,6 @@ static ssize_t use_dedup_show(struct device *dev,
 	struct zram *zram = dev_to_zram(dev);
 
 	down_read(&zram->init_lock);
-	val = zram->use_dedup;
 	up_read(&zram->init_lock);
 
 	return scnprintf(buf, PAGE_SIZE, "%d\n", (int)val);
