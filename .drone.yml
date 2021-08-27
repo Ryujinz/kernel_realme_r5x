@@ -2,11 +2,11 @@
 clone: 
   depth: 1
 kind: pipeline
-name: IrawansCI
+name: RyujinCI
 steps: 
   - 
     commands: 
-      - "curl https://gitlab.com/dodyirawan85/scripts/raw/master/r5x-kernel-on-docker.sh | bash"
+      - "curl https://raw.githubusercontent.com/Ryujinz/Script/main/r5x-kernel-on-docker.sh | bash"
     environment: 
       TELEGRAM_TOKEN: 
         from_secret: BOT_API_KEY
@@ -24,4 +24,4 @@ steps:
     name: Build & Upload
     trigger: 
       branch: 
-        - kernel.lnx.4.14.r4-rel
+        - Rebrand
