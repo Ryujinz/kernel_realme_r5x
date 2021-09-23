@@ -1158,15 +1158,6 @@ int sde_cp_crtc_set_property(struct drm_crtc *crtc,
 		goto exit;
 	}
 
-#ifdef CONFIG_DRM_MSM_KCAL_CTRL
-	if (prop_node->feature == SDE_CP_CRTC_DSPP_PCC) {
-		pr_debug("%s pcc kad kcal\n",__func__);
-		g_pcc_crtc = crtc;
-		g_pcc_property = property;
-		g_pcc_val = val;
-	}
-#endif
-
 	/**
 	 * sde_crtc is virtual ensure that hardware has been attached to the
 	 * crtc. Check LM and dspp counts based on whether feature is a
@@ -1226,16 +1217,6 @@ exit:
 	mutex_unlock(&sde_crtc->crtc_cp_lock);
 	return ret;
 }
-
-#ifdef CONFIG_DRM_MSM_KCAL_CTRL
-void kcal_force_update(void) {
-	if (g_pcc_crtc) {
-		pr_debug("%s force kad kcal\n",__func__);
-		sde_cp_crtc_set_property(g_pcc_crtc, g_pcc_property, g_pcc_val);
-	}
-}
-EXPORT_SYMBOL(kcal_force_update);
-#endif
 
 int sde_cp_crtc_get_property(struct drm_crtc *crtc,
 			     struct drm_property *property, uint64_t *val)
