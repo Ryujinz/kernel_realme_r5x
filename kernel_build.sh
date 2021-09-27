@@ -18,17 +18,17 @@
 echo "Downloading few Dependecies . . ."
 # Kernel Sources
 git clone --depth=1 https://github.com/Ryujinz/kernel_realme_r5x RMX1911
-git clone --depth=1 https://github.com/Panchajanya1999/azure-clang Azure # Azure set as Clang Default
+git clone --depth=1 https://github.com/Ryujinz/Ryujinz-Clang Ryujinz # Ryujinz set as Clang Default
 
 # Main Declaration
 KERNEL_ROOTDIR=$(pwd)/RMX1911 # IMPORTANT ! Fill with your kernel source root directory.
 DEVICE_DEFCONFIG=vendor/RMX1911_defconfig # IMPORTANT ! Declare your kernel source defconfig file here.
-CLANG_ROOTDIR=$(pwd)/Azure # IMPORTANT! Put your clang directory here.
+CLANG_ROOTDIR=$(pwd)/Ryujinz # IMPORTANT! Put your clang directory here.
 export KBUILD_BUILD_USER=renaldigp # Change with your own name or else.
 export KBUILD_BUILD_HOST=ryujinz # Change with your own hostname.
 CLANG_VER="$("$CLANG_ROOTDIR"/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')"
 LLD_VER="$("$CLANG_ROOTDIR"/bin/ld.lld --version | head -n 1)"
-export KBUILD_COMPILER_STRING="$CLANG_VER with $LLD_VER"
+export KBUILD_COMPILER_STRING="$CLANG_VER"
 IMAGE=$(pwd)/$DEVICE_CODENAME/out/arch/arm64/boot/Image.gz-dtb
 DATE=$(date +"%F-%S")
 START=$(date +"%s")
@@ -85,7 +85,7 @@ make -j$(nproc) ARCH=arm64 O=out \
 	exit 1
    fi
 
-  git clone --depth=1 $ANYKERNEL AnyKernel
+  git clone --depth=1 https://github.com/Ryujinz/anykernel AnyKernel
 	cp $IMAGE AnyKernel
 }
 
