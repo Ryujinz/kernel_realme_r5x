@@ -91,6 +91,7 @@
 #include <linux/livepatch.h>
 #include <linux/thread_info.h>
 #include <linux/cpufreq_times.h>
+#include <linux/cpu_input_boost.h>
 #include <linux/devfreq_boost.h>
 
 #include <asm/pgtable.h>
@@ -2103,10 +2104,11 @@ long _do_fork(unsigned long clone_flags,
 	int trace = 0;
 	long nr;
 
-	/* Boost DDR bus to the max when userspace launches an app */
-	if (task_is_zygote(current))
-		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW,
-			CONFIG_DEVFREQ_INPUT_BOOST_DURATION_MS);
+	/* Boost CPU to the max for 150 ms when userspace launches an app */
+	if (is_zygote_pid(current->pid)) {
+		cpu_input_boost_kick_max(150);
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 150);
+	}
 
 	/*
 	 * Determine whether and which event to report to ptracer.  When
