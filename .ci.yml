@@ -1,8 +1,8 @@
 kind: pipeline
-name : xKernel Compiler
+name : Phantom Compiler
 version: rev1.5_template
 steps:
- - name: xKernel Compilation
+ - name: Phantom Compilation
    image: xyzuan/xdocker:latest
    environment:
      KERNEL_NAME:
