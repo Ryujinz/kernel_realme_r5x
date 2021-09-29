@@ -41,7 +41,9 @@
 
 /* Convert BCM threshold to actual frequency x 4 */
 #define CONV_TO_BW(x) (x*20000*4)
+#ifdef CONFIG_IPC_LOGGING
 #define NUM_LOG_PAGES 2
+#endif
 #define MAX_CLK_PERF_LEVEL 32
 static unsigned long default_bus_bw_set[] = {0, 19200000, 50000000,
 				100000000, 150000000, 200000000, 236000000};
@@ -1971,10 +1973,12 @@ static int geni_se_probe(struct platform_device *pdev)
 		INIT_LIST_HEAD(&geni_se_dev->ib_list_head_noc);
 	}
 	mutex_init(&geni_se_dev->geni_dev_lock);
+#ifdef CONFIG_IPC_LOGGING
 	geni_se_dev->log_ctx = ipc_log_context_create(NUM_LOG_PAGES,
 						dev_name(geni_se_dev->dev), 0);
 	if (!geni_se_dev->log_ctx)
 		dev_err(dev, "%s Failed to allocate log context\n", __func__);
+#endif
 	dev_set_drvdata(dev, geni_se_dev);
 
 	ret = of_platform_populate(dev->of_node, geni_se_dt_match, NULL, dev);
