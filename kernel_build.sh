@@ -38,7 +38,7 @@ PATH="${PATH}:${CLANG_ROOTDIR}/bin"
 # Warning !! Dont Change anything there without known reason.
 function check() {
 echo ================================================
-echo ⚡️PhantomCompiler⚡️
+echo PotatoCompiler🥔💦
 echo version : rev1.5 - gaspoll
 echo ================================================
 echo BUILDER NAME = ${KBUILD_BUILD_USER}
@@ -62,11 +62,11 @@ tg_post_msg() {
 }
 
 # Post Main Information
-tg_post_msg "<b>⚡️PhantomCompiler⚡️</b>%0ABuilder Name : <code>${KBUILD_BUILD_USER}</code>%0ABuilder Host : <code>${KBUILD_BUILD_HOST}</code>%0ADevice Defconfig: <code>${DEVICE_DEFCONFIG}</code>%0AClang Version : <code>${KBUILD_COMPILER_STRING}</code>%0AClang Rootdir : <code>${CLANG_ROOTDIR}</code>%0AKernel Rootdir : <code>${KERNEL_ROOTDIR}</code>"
+tg_post_msg "<b>PotatoCompiler🥔💦</b>%0ABuilder Name : <code>${KBUILD_BUILD_USER}</code>%0ABuilder Host : <code>${KBUILD_BUILD_HOST}</code>%0ADevice Defconfig: <code>${DEVICE_DEFCONFIG}</code>%0AClang Version : <code>${KBUILD_COMPILER_STRING}</code>%0AClang Rootdir : <code>${CLANG_ROOTDIR}</code>%0AKernel Rootdir : <code>${KERNEL_ROOTDIR}</code>"
 
 # Compile
 compile(){
-tg_post_msg "<b>⚡️PhantomCompiler⚡️:</b><code>Compilation has started</code>"
+tg_post_msg "<b>PotatoCompiler🥔💦:</b><code>Compilation has started</code>"
 cd ${KERNEL_ROOTDIR}
 make -j$(nproc) O=out ARCH=arm64 ${DEVICE_DEFCONFIG}
 make -j$(nproc) ARCH=arm64 O=out \

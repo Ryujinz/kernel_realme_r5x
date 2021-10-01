@@ -1,8 +1,8 @@
 kind: pipeline
-name : Phantom Compiler
+name : Potato Compiler
 version: rev1.5_template
 steps:
- - name: Phantom Compilation
+ - name: Potato Compilation
    image: xyzuan/xdocker:latest
    environment:
      KERNEL_NAME:
