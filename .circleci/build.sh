@@ -4,7 +4,7 @@ git clone --depth=1 https://github.com/Ryujinz/kernel_realme_r5x RMX1911
 git clone --depth=1 -b 11.0.5 https://github.com/Haseo97/Avalon-Clang-12.0.0 clang
 
 # Main
-KERNEL_NAME=Potato•Chips🥔 # IMPORTANT ! Declare your kernel name
+KERNEL_NAME=Smoothies🍌 # IMPORTANT ! Declare your kernel name
 KERNEL_ROOTDIR=$(pwd)/RMX1911 # IMPORTANT ! Fill with your kernel source root directory.
 DEVICE_CODENAME=RMX1911 # IMPORTANT ! Declare your device codename
 DEVICE_DEFCONFIG=vendor/RMX1911_defconfig # IMPORTANT ! Declare your kernel source defconfig file here.
