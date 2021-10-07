@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 echo "Downloading few Dependecies . . ."
 git clone --depth=1 https://github.com/Ryujinz/kernel_realme_r5x RMX1911
-git clone --depth=1 -b 11.0.5 https://github.com/Haseo97/Avalon-Clang-12.0.0 clang
+git clone --depth=1 https://github.com/xyz-prjkt/xRageTC-clang clang
 
 # Main
 KERNEL_NAME=Smoothies🍌 # IMPORTANT ! Declare your kernel name
