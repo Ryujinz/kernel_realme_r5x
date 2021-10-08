@@ -4,7 +4,7 @@ git clone --depth=1 https://github.com/Ryujinz/kernel_realme_r5x RMX1911
 git clone --depth=1 https://github.com/xyz-prjkt/xRageTC-clang clang
 
 # Main
-KERNEL_NAME=Smoothies🍌 # IMPORTANT ! Declare your kernel name
+KERNEL_NAME=Kong🦍 # IMPORTANT ! Declare your kernel name
 KERNEL_ROOTDIR=$(pwd)/RMX1911 # IMPORTANT ! Fill with your kernel source root directory.
 DEVICE_CODENAME=RMX1911 # IMPORTANT ! Declare your device codename
 DEVICE_DEFCONFIG=vendor/RMX1911_defconfig # IMPORTANT ! Declare your kernel source defconfig file here.
