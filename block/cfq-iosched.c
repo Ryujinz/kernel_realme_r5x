@@ -1592,11 +1592,11 @@ static void cfq_cpd_init(struct blkcg_policy_data *cpd)
 			      CGROUP_WEIGHT_DFL : CFQ_WEIGHT_LEGACY_DFL;
 
 	if (cpd_to_blkcg(cpd) == &blkcg_root)
-		weight *= 2;
+		weight *= 10;
 
-	cgd->weight = weight;
+	cgd->weight = 1000;
 	cgd->leaf_weight = weight;
-	cgd->group_idle = cfq_group_idle;
+	cgd->group_idle = 2000;
 }
 
 static void cfq_cpd_free(struct blkcg_policy_data *cpd)
@@ -1611,7 +1611,7 @@ static void cfq_cpd_bind(struct blkcg_policy_data *cpd)
 	unsigned int weight = on_dfl ? CGROUP_WEIGHT_DFL : CFQ_WEIGHT_LEGACY_DFL;
 
 	if (blkcg == &blkcg_root)
-		weight *= 2;
+		weight *= 10;
 
 	WARN_ON_ONCE(__cfq_set_weight(&blkcg->css, weight, on_dfl, true, false));
 	WARN_ON_ONCE(__cfq_set_weight(&blkcg->css, weight, on_dfl, true, true));
