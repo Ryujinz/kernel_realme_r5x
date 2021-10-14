@@ -26,7 +26,7 @@
  * x1: address
  */
 	.macro	bitop, name, llsc, lse
-ENTRY(	\name	)
+SYM_FUNC_START(	\name	)
 	and	w3, w0, #63		// Get bit offset
 	eor	w0, w0, w3		// Clear low bits
 	mov	x2, #1
@@ -40,11 +40,11 @@ alt_lse	"	stxr	w0, x2, [x1]",		"nop"
 alt_lse	"	cbnz	w0, 1b",		"nop"
 
 	ret
-ENDPROC(\name	)
+SYM_FUNC_END(\name	)
 	.endm
 
 	.macro	testop, name, llsc, lse
-ENTRY(	\name	)
+SYM_FUNC_START(	\name	)
 	and	w3, w0, #63		// Get bit offset
 	eor	w0, w0, w3		// Clear low bits
 	mov	x2, #1
@@ -61,7 +61,7 @@ alt_lse	"	dmb	ish",			"nop"
 
 	and	x0, x0, #1
 	ret
-ENDPROC(\name	)
+SYM_FUNC_END(\name	)
 	.endm
 
 /*

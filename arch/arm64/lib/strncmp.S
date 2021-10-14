@@ -41,7 +41,7 @@ mask		.req	x14
 endloop		.req	x15
 count		.req	mask
 
-WEAK(strncmp)
+SYM_FUNC_START_WEAK_PI(strncmp)
 	cbz	limit, .Lret0
 	eor	tmp1, src1, src2
 	mov	zeroones, #REP8_01
@@ -248,6 +248,4 @@ CPU_LE( lsr	tmp2, tmp2, tmp3 )	/* Shift (count & 63).  */
 .Lret0:
 	mov	result, #0
 	ret
-
-ENDPIPROC(strncmp)
-
+SYM_FUNC_END_PI(strncmp)

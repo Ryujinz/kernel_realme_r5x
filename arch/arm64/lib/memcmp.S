@@ -25,14 +25,20 @@
 /* Internal variables.  */
 #define data1		x3
 #define data1w		w3
-#define data1h		x4
-#define data2		x5
-#define data2w		w5
-#define data2h		x6
-#define tmp1		x7
-#define tmp2		x8
+#define data2		x4
+#define data2w		w4
+#define tmp1		x5
 
-WEAK(memcmp)
+/* Small inputs of less than 8 bytes are handled separately.  This allows the
+   main code to be sped up using unaligned loads since there are now at least
+   8 bytes to be compared.  If the first 8 bytes are equal, align src1.
+   This ensures each iteration does at most one unaligned access even if both
+   src1 and src2 are unaligned, and mutually aligned inputs behave as if
+   aligned.  After the main loop, process the last 8 bytes using unaligned
+   accesses.  */
+
+.p2align 6
+SYM_FUNC_START_WEAK_PI(memcmp)
 	subs	limit, limit, 8
 	b.lo	L(less8)
 
@@ -134,5 +140,4 @@ L(byte_loop):
 	b.eq	L(byte_loop)
 	sub	result, data1w, data2w
 	ret
-
-ENDPIPROC(memcmp)
+SYM_FUNC_END_PI(memcmp)
