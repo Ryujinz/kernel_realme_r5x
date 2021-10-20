@@ -26,7 +26,6 @@
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
 #include "kgsl_device.h"
-#include "kgsl_trace.h"
 #include "kgsl_gmu_core.h"
 
 #define KGSL_PWRFLAGS_POWER_ON 0
