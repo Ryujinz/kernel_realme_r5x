@@ -726,13 +726,6 @@ KBUILD_CFLAGS  += $(call cc-option, -Wno-format)
 KBUILD_CFLAGS  += $(call cc-option, -Wno-maybe-uninitialized)
 KBUILD_CFLAGS  += $(call cc-option, -Wno-psabi)
 
-ifdef CONFIG_THINLTO
-lto-clang-flags := -flto=thin -fsplit-lto-unit
-LDFLAGS	+= --thinlto-cache-dir=.thinlto-cache
-else
-lto-clang-flags := -flto
-endif
-lto-clang-flags += -fvisibility=hidden
 ## hide "error: cast to smaller integer type 'eSapStatus' from 'void *' "
 KBUILD_CFLAGS	+= $(call cc-disable-warning, pointer-to-int-cast)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
