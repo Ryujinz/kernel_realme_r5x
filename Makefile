@@ -521,13 +521,18 @@ endif
 ifneq ($(GCC_TOOLCHAIN),)
 CLANG_FLAGS	+= --gcc-toolchain=$(GCC_TOOLCHAIN)
 endif
-ifneq ($(LLVM_IAS),1)
 CLANG_FLAGS	+= -no-integrated-as
-endif
 CLANG_FLAGS	+= -Werror=unknown-warning-option
+ifeq ($(ld-name),lld)
+CLANG_FLAGS	+= -fuse-ld=$(shell which $(LD))
+endif
+KBUILD_CPPFLAGS	+= -Qunused-arguments
 KBUILD_CFLAGS	+= $(CLANG_FLAGS)
 KBUILD_AFLAGS	+= $(CLANG_FLAGS)
-export CLANG_FLAGS
+ifeq ($(ld-name),lld)
+KBUILD_CFLAGS += -fuse-ld=lld
+endif
+KBUILD_CPPFLAGS += -Qunused-arguments
 endif
 
 RETPOLINE_CFLAGS_GCC := -mindirect-branch=thunk-extern -mindirect-branch-register
@@ -675,11 +680,18 @@ export CFLAGS_GCOV CFLAGS_KCOV
 
 # Make toolchain changes before including arch/$(SRCARCH)/Makefile to ensure
 # ar/cc/ld-* macros return correct values.
-ifdef CONFIG_LTO_CLANG
-# use GNU gold with LLVMgold for LTO linking, and LD for vmlinux_link
+ifdef CONFIG_LD_GOLD
 LDFINAL_vmlinux := $(LD)
 LD		:= $(LDGOLD)
+endif
+ifdef CONFIG_LD_LLD
+LD		:= $(LDLLD)
+endif
+ifdef CONFIG_LTO_CLANG
+# use GNU gold with LLVMgold or LLD for LTO linking, and LD for vmlinux_link
+ifeq ($(ld-name),gold)
 LDFLAGS		+= -plugin LLVMgold.so
+endif
 # use llvm-ar for building symbol tables from IR files, and llvm-dis instead
 # of objdump for processing symbol versions and exports
 LLVM_AR		:= llvm-ar
@@ -689,21 +701,24 @@ export LLVM_AR LLVM_NM
 LDFLAGS		+= --plugin-opt=O3
 endif
 
-ifdef CONFIG_LTO
-LTO_CFLAGS    := -flto -flto=jobserver -fipa-pta -ffat-lto-objects \
-                 -fuse-linker-plugin -fwhole-program
-KBUILD_CFLAGS += $(LTO_CFLAGS) --param=max-inline-insns-auto=1000
-LTO_LDFLAGS   := $(LTO_CFLAGS) -Wno-lto-type-mismatch -Wno-psabi \
-                 -Wno-stringop-overflow -flinker-output=nolto-rel
-LDFINAL       := $(CONFIG_SHELL) $(srctree)/scripts/gcc-ld $(LTO_LDFLAGS)
-AR            := $(CROSS_COMPILE)gcc-ar
-NM            := $(CROSS_COMPILE)gcc-nm
-DISABLE_LTO   := -fno-lto
-export DISABLE_LTO LDFINAL
+ifdef CONFIG_LTO_GCC
+LTO_CFLAGS		:= -flto -flto=jobserver -fno-fat-lto-objects \
+				-fuse-linker-plugin -fwhole-program
+ifdef CONFIG_GRAPHITE
+LTO_CFLAGS    += -floop-interchange -ftree-loop-distribution -floop-strip-mine -floop-block -ftree-vectorize
 endif
-
-ifdef CONFIG_GCC_GRAPHITE
-KBUILD_CFLAGS	+= -fgraphite-identity -floop-nest-optimize
+KBUILD_CFLAGS	+= $(LTO_CFLAGS)
+LTO_LDFLAGS		:= $(LTO_CFLAGS) -Wno-lto-type-mismatch -Wno-psabi \
+				-Wno-stringop-overflow -Wno-stringop-overread \
+				-flinker-output=nolto-rel
+LDFINAL			:= $(CONFIG_SHELL) $(srctree)/scripts/gcc-ld $(LTO_LDFLAGS)
+AR				:= $(CROSS_COMPILE)gcc-ar
+NM				:= $(CROSS_COMPILE)gcc-nm
+DISABLE_LTO		:= -fno-lto
+export DISABLE_LTO LDFINAL
+else
+LDFINAL		:= $(LD)
+export LDFINAL
 endif
 
 # The arch Makefile can set ARCH_{CPP,A,C}FLAGS to override the default
@@ -807,7 +822,6 @@ endif
 KBUILD_CFLAGS += $(stackp-flag)
 
 ifeq ($(cc-name),clang)
-KBUILD_CPPFLAGS += $(call cc-option,-Qunused-arguments,)
 KBUILD_CFLAGS += $(call cc-disable-warning, format-invalid-specifier)
 KBUILD_CFLAGS += $(call cc-disable-warning, gnu)
 KBUILD_CFLAGS += $(call cc-disable-warning, duplicate-decl-specifier)
