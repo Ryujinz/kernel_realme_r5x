@@ -219,12 +219,7 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 			total_swapcache_pages();
 		other_free = global_zone_page_state(NR_FREE_PAGES);
 
-#ifdef CONFIG_PRODUCT_REALME_TRINKET
-        if (other_file < totalram_pages/almk_totalram_ratio)
-             atomic_set(&shift_adj, 1);
-#else
 		atomic_set(&shift_adj, 1);
-#endif
 		trace_almk_vmpressure(pressure, other_free, other_file);
 	} else if (pressure >= 90) {
 		if (lowmem_adj_size < array_size)
