@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 echo "Downloading few Dependecies . . ."
 git clone --depth=1 https://github.com/Ryujinz/kernel_realme_r5x RMX1911
-git clone --depth=1 https://github.com/xyz-prjkt/xRageTC-clang clang
+git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
 
 # Main
 KERNEL_NAME=Vior🧿 # IMPORTANT ! Declare your kernel name
