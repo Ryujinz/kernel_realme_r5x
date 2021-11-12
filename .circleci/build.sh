@@ -48,7 +48,6 @@ function compile() {
 	CC=${CLANG_ROOTDIR}/bin/clang \
 	AR=llvm-ar \
 	NM=llvm-nm \
-	LD=ld.lld \
 	AS=llvm-as \
 	STRIP=llvm-strip \
 	OBJCOPY=llvm-objcopy \
