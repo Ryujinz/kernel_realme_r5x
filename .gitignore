@@ -134,5 +134,7 @@ Android.bp
 
 # Ignore the build output
 *.txt
-/out
-/clang
+out/
+clang/
+any/
+AnyKernel3/
