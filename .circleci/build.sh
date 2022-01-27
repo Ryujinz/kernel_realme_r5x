@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 echo "Downloading few Dependecies . . ."
 git clone --depth=1 https://github.com/Ryujinz/kernel_realme_r5x -b Chizuru RMX1911
-git clone --depth=1 https://github.com/Haseo97/Avalon-Clang-12.0.0 -b 11.0.5 clang
+git clone --depth=1 https://github.com/Ryujinz/Avalon-Clang-12.0.0 -b 11.0.5 clang
 
 # Main
 KERNEL_NAME=Chizuru # IMPORTANT ! Declare your kernel name
