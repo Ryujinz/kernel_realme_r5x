@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 echo "Downloading few Dependecies . . ."
 git clone --depth=1 https://github.com/Ryujinz/kernel_realme_r5x -b Chizuru RMX1911
-git clone --depth=1 https://gitlab.com/Herobuxx/lunatic-clang clang
+git clone --depth=1 https://gitlab.com/klozz/Yuki-clang clang
 
 # Main
 KERNEL_NAME=Arthic # IMPORTANT ! Declare your kernel name
