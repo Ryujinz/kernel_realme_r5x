@@ -235,89 +235,6 @@ static void qmi_rmnet_reset_txq(struct net_device *dev, unsigned int txq)
 	}
 }
 
-/**
- * qmi_rmnet_watchdog_fn - watchdog timer func
- */
-static void qmi_rmnet_watchdog_fn(struct timer_list *t)
-{
-	struct rmnet_bearer_map *bearer;
-
-	bearer = container_of(t, struct rmnet_bearer_map, watchdog);
-
-	trace_dfc_watchdog(bearer->qos->mux_id, bearer->bearer_id, 2);
-
-	spin_lock_bh(&bearer->qos->qos_lock);
-
-	if (bearer->watchdog_quit)
-		goto done;
-
-	/*
-	 * Possible stall, try to recover. Enable 80% query and jumpstart
-	 * the bearer if disabled.
-	 */
-	bearer->watchdog_expire_cnt++;
-	bearer->bytes_in_flight = 0;
-	if (!bearer->grant_size) {
-		bearer->grant_size = DEFAULT_CALL_GRANT;
-		bearer->grant_thresh = qmi_rmnet_grant_per(bearer->grant_size);
-		dfc_bearer_flow_ctl(bearer->qos->vnd_dev, bearer, bearer->qos);
-	} else {
-		bearer->grant_thresh = qmi_rmnet_grant_per(bearer->grant_size);
-	}
-
-done:
-	bearer->watchdog_started = false;
-	spin_unlock_bh(&bearer->qos->qos_lock);
-}
-
-/**
- * qmi_rmnet_watchdog_add - add the bearer to watch
- * Needs to be called with qos_lock
- */
-void qmi_rmnet_watchdog_add(struct rmnet_bearer_map *bearer)
-{
-	bearer->watchdog_quit = false;
-
-	if (bearer->watchdog_started)
-		return;
-
-	bearer->watchdog_started = true;
-	mod_timer(&bearer->watchdog, jiffies + WATCHDOG_EXPIRE_JF);
-
-	trace_dfc_watchdog(bearer->qos->mux_id, bearer->bearer_id, 1);
-}
-
-/**
- * qmi_rmnet_watchdog_remove - remove the bearer from watch
- * Needs to be called with qos_lock
- */
-void qmi_rmnet_watchdog_remove(struct rmnet_bearer_map *bearer)
-{
-	bearer->watchdog_quit = true;
-
-	if (!bearer->watchdog_started)
-		return;
-
-	if (try_to_del_timer_sync(&bearer->watchdog) >= 0)
-		bearer->watchdog_started = false;
-
-	trace_dfc_watchdog(bearer->qos->mux_id, bearer->bearer_id, 0);
-}
-
-/**
- * qmi_rmnet_bearer_clean - clean the removed bearer
- * Needs to be called with rtn_lock but not qos_lock
- */
-static void qmi_rmnet_bearer_clean(struct qos_info *qos)
-{
-	if (qos->removed_bearer) {
-		qos->removed_bearer->watchdog_quit = true;
-		del_timer_sync(&qos->removed_bearer->watchdog);
-		kfree(qos->removed_bearer);
-		qos->removed_bearer = NULL;
-	}
-}
-
 static struct rmnet_bearer_map *__qmi_rmnet_bearer_get(
 				struct qos_info *qos_info, u8 bearer_id)
 {
@@ -333,7 +250,7 @@ static struct rmnet_bearer_map *__qmi_rmnet_bearer_get(
 
 		bearer->bearer_id = bearer_id;
 		bearer->flow_ref = 1;
-		bearer->grant_size = DEFAULT_CALL_GRANT;
+		bearer->grant_size = DEFAULT_GRANT;
 		bearer->grant_thresh = qmi_rmnet_grant_per(bearer->grant_size);
 		bearer->mq_idx = INVALID_MQ;
 		bearer->ack_mq_idx = INVALID_MQ;
